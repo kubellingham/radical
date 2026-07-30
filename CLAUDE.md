@@ -13,7 +13,7 @@ Phases: 1 skeleton ✓ · 2 Found/Record ✓ · 3 Feed/packs ✓ · 4 Check/drif
 - **Storage:** all local persistence goes through `lib/local-store` (`get`/`set`/`list`). Only that module knows whether sqlite (native) or IndexedDB (web) is underneath; keep it that way. Shared keys are written under the promise-chain locks in `lib/repo.ts` — the kv store has no transactions.
 - **Supabase may be unconfigured** (`supabase === null`): every feature must degrade to local-only, quietly. Failure states are one flat line, not error walls.
 - **Copy is flat and factual.** "Korean, 5 days dark." No cheerleading, no streaks, no confetti; swipe physics on the Feed is the only animation.
-- **Secrets:** the Anthropic key lives in Vercel serverless functions (`/api/*`), never in the app bundle. `/api/dump` requires a valid Supabase session token — it spends real credit. Only `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` / `_API_URL` are client-side.
+- **Secrets:** the model API key lives in Vercel serverless functions (`/api/*`), never in the app bundle. `/api/dump` takes `OPENROUTER_API_KEY` or `ANTHROPIC_API_KEY` (OpenRouter wins if both are set) and requires a valid Supabase session token — it spends real credit. Only `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` / `_API_URL` are client-side.
 
 ## Checks before committing
 

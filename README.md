@@ -46,6 +46,18 @@ npm run lint
 npm run export:web
 ```
 
+## The Found parser
+
+`/api/dump` turns messy text into structured items. It works with either provider — set **one** of these in Vercel's environment variables (Production), never in the repo:
+
+| Variable | Notes |
+|---|---|
+| `OPENROUTER_API_KEY` | Takes precedence. Default model `anthropic/claude-sonnet-5`, ~half a cent per capture. |
+| `ANTHROPIC_API_KEY` | Direct. Default model `claude-opus-5`. |
+| `DUMP_MODEL` | Optional override, e.g. `anthropic/claude-haiku-4.5` for a cheaper run. |
+
+The endpoint requires a valid Supabase session token, so only the signed-in app can spend credit. With no key set — or if the call fails for any reason — Found silently falls back to its local parser, which handles `X = Y` and `X means Y` but won't convert romanization to native script or fill in Sino roots.
+
 ## Content packs
 
 A pack is ~40 items: one language, one context, one level. Generated at build time, reviewed by hand, then uploaded — never generated at runtime, which is what keeps the app instant and free to open.
@@ -63,7 +75,8 @@ The Sino packs are the point: the same root at the same index in all three decks
 
 ```
 app/                  sign-in, setup, (tabs)/{today,found,feed,check,record}
-api/dump.ts           Vercel function: free text → structured items. Key server-side, session-gated.
+api/dump.ts           Vercel function: free text → structured items. OpenRouter or Anthropic,
+                      key server-side, session-gated.
 components/           Screen wrapper, the three card faces
 constants/theme.ts    The five design tokens. The only colors in the app.
 lib/local-store/      get/set/list — expo-sqlite native, idb-keyval web. Nothing else knows which.
