@@ -9,7 +9,7 @@ Expo (iOS + web) · Supabase · Anthropic API.
 - **Phase 1 — Skeleton: done.** Setup flow, tabs, local store, schema, design tokens.
 - **Phase 2 — Found, Record: done.** Free-text capture parsed into structured items, hours counted forever, the session log.
 - **Phase 3 — Feed and packs: done.** Swipeable deck, three card types, build-time pack generator, background sync.
-- Phase 4 — Check and drift: next. The one place seal red is allowed.
+- **Phase 4 — Check and drift: done.** The daily conversation, silent grading, the drift indicator — the one place seal red is allowed.
 - Phase 5 — Mirror and report.
 
 See `docs/direction-v2.md` for the current product direction and what it changed.
@@ -21,7 +21,7 @@ See `docs/direction-v2.md` for the current product direction and what it changed
 | **Today** | Today's mission and nothing else. Two or three lines, an estimate, no analytics. |
 | **Found** | Where everything you learned out in the world goes. Type it messily; it gets parsed, shown for confirmation, and filed. |
 | **Feed** | A deck of cards for the idle four minutes. Swipe right if you have it, left to see it again. |
-| **Check** | The daily two-minute conversation. Phase 4. |
+| **Check** | The daily two-minute conversation. It asks for one language at a time, grades silently, and is what tells Today which language has gone dark. |
 | **Record** | Hours all-time, Day N of 1825, and every session note in reverse order. The thing you reread in 2031. |
 
 ## First run
@@ -58,6 +58,20 @@ npm run export:web
 
 The endpoint requires a valid Supabase session token, so only the signed-in app can spend credit. With no key set — or if the call fails for any reason — Found silently falls back to its local parser, which handles `X = Y` and `X means Y` but won't convert romanization to native script or fill in Sino roots.
 
+`/api/sets` (the bank, `SETS_MODEL`) and `/api/check` (the daily conversation, `CHECK_MODEL`) read the same two keys and are gated the same way.
+
+## The Check and drift
+
+Once a day, six exchanges, about two minutes. The server runs the conversation over sets already in rotation, asking for one named language at a time, and grades each answer `solid` / `shaky` / `missed` — silently. Nothing about the grading reaches the screen; it only feeds `lib/scheduler.ts`.
+
+Asking one language at a time is the point. Every Feed card shows all five at once, so the Feed can't tell them apart — it lights all of them or none. The Check can, and a language that keeps not coming up, or keeps being missed, goes dark while the others stay lit. Four days dark and Today says so, once, in seal red:
+
+> Korean, 5 days dark.
+
+Never two at once — a page with two warnings on it has no warning on it — and never before the first Check exists, because until then everything is equally untested.
+
+With no network or no session the conversation is replaced by ten tapped questions, one language each. Same verdicts, same curve, same drift signal, so a week offline doesn't blind it. The script gate applies here too, on the client *and* again in `api/check.ts`: a language you can't read yet is never asked about.
+
 ## Content packs
 
 A pack is ~40 items: one language, one context, one level. Generated at build time, reviewed by hand, then uploaded — never generated at runtime, which is what keeps the app instant and free to open.
@@ -77,10 +91,16 @@ The Sino packs are the point: the same root at the same index in all three decks
 app/                  sign-in, setup, (tabs)/{today,found,feed,check,record}
 api/dump.ts           Vercel function: free text → structured items. OpenRouter or Anthropic,
                       key server-side, session-gated.
-components/           Screen wrapper, the three card faces
+api/sets.ts           Generates the bank: one meaning in all five languages. Also expands a
+                      captured word, and fills in pronunciations.
+api/check.ts          Runs one turn of the daily conversation and grades the last answer.
+components/           Screen wrapper, the card faces, the offline tap check
 constants/theme.ts    The five design tokens. The only colors in the app.
 lib/local-store/      get/set/list — expo-sqlite native, idb-keyval web. Nothing else knows which.
 lib/scheduler.ts      The only file that knows about strength and intervals.
+lib/sets.ts           The bank: load, refill, sync. Never runs dry.
+lib/check.ts          The daily conversation, its verdicts, and its history
+lib/drift.ts          Which language has gone dark. The only source of seal red.
 lib/deck.ts           Builds the Feed: due items, sino triples, false friends
 lib/packs.ts          Pack cache and the background sync worker
 lib/repo.ts           Items, sessions, and the retrying outbox

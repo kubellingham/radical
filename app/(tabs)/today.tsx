@@ -6,6 +6,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/screen';
 import { colors, space, type } from '@/constants/theme';
 import { supabaseConfigured, useApp } from '@/lib/app-state';
+import { checkedToday } from '@/lib/check';
+import { type Drift, driftLine, drifting } from '@/lib/drift';
 import { DEFAULT_LANGUAGES } from '@/lib/languages';
 import { dueSets, refillIfLow, sentenceOfTheDay } from '@/lib/sets';
 import type { LexemeSet } from '@/lib/types';
@@ -14,11 +16,14 @@ const ORDER = DEFAULT_LANGUAGES.map((l) => l.code);
 const MINUTES_PER_CARD = 0.7;
 
 export default function Today() {
-  const { pendingSync } = useApp();
+  const { pendingSync, setup } = useApp();
   const [sentence, setSentence] = useState<LexemeSet | null>(null);
   const [waiting, setWaiting] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [drift, setDrift] = useState<Drift | null>(null);
+  const [checked, setChecked] = useState(true);
 
+  const languages = setup.languages;
   const build = useCallback(() => {
     let cancelled = false;
     Promise.all([sentenceOfTheDay(), dueSets('word', 'any')]).then(([s, words]) => {
@@ -27,12 +32,17 @@ export default function Today() {
       setWaiting(words.length);
       setLoaded(true);
     });
+    Promise.all([drifting(languages), checkedToday()]).then(([d, done]) => {
+      if (cancelled) return;
+      setDrift(d);
+      setChecked(done);
+    });
     refillIfLow('word');
     refillIfLow('sentence');
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [languages]);
 
   useFocusEffect(build);
 
@@ -85,6 +95,20 @@ export default function Today() {
               {Math.max(1, Math.round(waiting * MINUTES_PER_CARD))} min
             </Text>
           </View>
+        ) : null}
+
+        {/* The one drop of colour in the whole app, on the one language
+            that has gone quiet. Never two at once. */}
+        {drift ? (
+          <Link href="/check" style={styles.drift}>
+            {driftLine(drift)}
+          </Link>
+        ) : null}
+
+        {!checked ? (
+          <Link href="/check" style={styles.check}>
+            Two minutes, not done today.
+          </Link>
         ) : null}
 
         {pendingSync && supabaseConfigured ? (
@@ -157,6 +181,16 @@ const styles = StyleSheet.create({
   missionValue: {
     color: colors.paper,
     fontSize: type.small,
+  },
+  drift: {
+    color: colors.seal,
+    fontSize: type.small,
+    marginTop: space.lg,
+  },
+  check: {
+    color: colors.paper,
+    fontSize: type.small,
+    marginTop: space.md,
   },
   quiet: {
     color: colors.slate,

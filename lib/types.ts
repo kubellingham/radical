@@ -105,6 +105,40 @@ export interface SetState {
   timesMissed: number;
 }
 
+/** How one answer in the Check landed. Never shown; it only feeds the curve. */
+export type CheckResult = 'solid' | 'shaky' | 'missed';
+
+export interface CheckTurn {
+  role: 'app' | 'you';
+  text: string;
+}
+
+/** What the Check asked for on a turn: one set, in one named language. */
+export interface CheckAsk {
+  setId: string;
+  languageCode: LanguageCode;
+}
+
+export interface CheckVerdict {
+  setId: string;
+  languageCode: LanguageCode;
+  result: CheckResult;
+}
+
+/**
+ * One day's conversation, kept whole. The transcript is the part worth
+ * rereading later; the verdicts are the part the app quietly acts on.
+ */
+export interface CheckRecord {
+  id: string;
+  /** The user's local day, YYYY-MM-DD. */
+  date: string;
+  transcript: CheckTurn[];
+  verdicts: CheckVerdict[];
+  minutes: number;
+  createdAt: string;
+}
+
 export type SessionKind = 'dump' | 'feed' | 'check' | 'external';
 
 export interface SessionEntry {
