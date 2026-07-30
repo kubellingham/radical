@@ -1,0 +1,66 @@
+{
+  "language_code": "ja",
+  "context_tag": "any",
+  "level": 1,
+  "title": "Japanese · false friends with Chinese · 1",
+  "version": 1,
+  "sort_order": 7,
+  "items": [
+    {
+      "term": "手紙",
+      "reading": "てがみ",
+      "meaning": "letter",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "toilet paper (手纸)" }
+    },
+    {
+      "term": "娘",
+      "reading": "むすめ",
+      "meaning": "daughter",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "mother (娘 niáng)" }
+    },
+    {
+      "term": "汽車",
+      "reading": "きしゃ",
+      "meaning": "steam train",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "car (汽车 qìchē)" }
+    },
+    {
+      "term": "先生",
+      "reading": "せんせい",
+      "meaning": "teacher",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "Mr., husband (先生 xiānsheng)" }
+    },
+    {
+      "term": "勉強",
+      "reading": "べんきょう",
+      "meaning": "study",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "reluctantly, barely (勉强 miǎnqiǎng)" }
+    },
+    {
+      "term": "愛人",
+      "reading": "あいじん",
+      "meaning": "lover, mistress",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "spouse (爱人 àiren)" }
+    },
+    {
+      "term": "大丈夫",
+      "reading": "だいじょうぶ",
+      "meaning": "it's fine, no problem",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "a real man (大丈夫 dàzhàngfū)" }
+    },
+    {
+      "term": "新聞",
+      "reading": "しんぶん",
+      "meaning": "newspaper",
+      "sino_root": "",
+      "false_friend": { "language_code": "zh", "meaning": "news (新闻 xīnwén)" }
+    }
+  ]
+}

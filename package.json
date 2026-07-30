@@ -9,7 +9,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "export:web": "expo export -p web"
+    "export:web": "expo export -p web",
+    "packs:generate": "node scripts/generate-packs.ts",
+    "packs:upload": "node scripts/upload-packs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

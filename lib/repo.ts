@@ -20,7 +20,7 @@ interface OutboxEntry {
 
 // crypto.randomUUID is missing on insecure web origins (plain-http dev
 // servers); build the v4 uuid from random bytes there.
-function newId(): string {
+export function newId(): string {
   try {
     return Crypto.randomUUID();
   } catch {
@@ -130,6 +130,34 @@ export async function logSession(input: {
   await enqueue({ id: newId(), items: [], states: [], session });
   const synced = await flushOutbox();
   return { synced };
+}
+
+export async function loadItems(): Promise<Item[]> {
+  try {
+    return (await localStore.list<Item>('item.')).map((r) => r.value);
+  } catch {
+    return [];
+  }
+}
+
+export async function loadItemStates(): Promise<ItemState[]> {
+  try {
+    return (await localStore.list<ItemState>('item_state.')).map((r) => r.value);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveItemState(state: ItemState): Promise<void> {
+  await localStore.set(`item_state.${state.itemId}`, state);
+  await enqueue({ id: newId(), items: [], states: [state], session: null });
+}
+
+/** Add pack-sourced items to the rotation, local first then queued to sync. */
+export async function addItems(items: Item[], states: ItemState[]): Promise<void> {
+  for (const item of items) await localStore.set(`item.${item.id}`, item);
+  for (const state of states) await localStore.set(`item_state.${state.itemId}`, state);
+  await enqueue({ id: newId(), items, states, session: null });
 }
 
 export async function loadSessions(): Promise<SessionEntry[]> {

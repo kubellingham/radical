@@ -1,0 +1,30 @@
+{
+  "language_code": "zh",
+  "context_tag": "any",
+  "level": 1,
+  "title": "Mandarin Chinese · sino roots · 1",
+  "version": 1,
+  "sort_order": 6,
+  "items": [
+    { "term": "时间", "reading": "shíjiān", "meaning": "time", "sino_root": "時間" },
+    { "term": "学生", "reading": "xuéshēng", "meaning": "student", "sino_root": "学生" },
+    { "term": "电话", "reading": "diànhuà", "meaning": "telephone", "sino_root": "電話" },
+    { "term": "准备", "reading": "zhǔnbèi", "meaning": "preparation", "sino_root": "準備" },
+    { "term": "图书馆", "reading": "túshūguǎn", "meaning": "library", "sino_root": "図書館" },
+    { "term": "大学", "reading": "dàxué", "meaning": "university", "sino_root": "大学" },
+    { "term": "学校", "reading": "xuéxiào", "meaning": "school", "sino_root": "学校" },
+    { "term": "银行", "reading": "yínháng", "meaning": "bank", "sino_root": "銀行" },
+    { "term": "音乐", "reading": "yīnyuè", "meaning": "music", "sino_root": "音楽" },
+    { "term": "运动", "reading": "yùndòng", "meaning": "exercise, sport", "sino_root": "運動" },
+    { "term": "地图", "reading": "dìtú", "meaning": "map", "sino_root": "地図" },
+    { "term": "教室", "reading": "jiàoshì", "meaning": "classroom", "sino_root": "教室" },
+    { "term": "世界", "reading": "shìjiè", "meaning": "world", "sino_root": "世界" },
+    { "term": "文化", "reading": "wénhuà", "meaning": "culture", "sino_root": "文化" },
+    { "term": "必要", "reading": "bìyào", "meaning": "necessary", "sino_root": "必要" },
+    { "term": "简单", "reading": "jiǎndān", "meaning": "simple", "sino_root": "簡単" },
+    { "term": "说明", "reading": "shuōmíng", "meaning": "explanation", "sino_root": "説明" },
+    { "term": "感谢", "reading": "gǎnxiè", "meaning": "gratitude, thanks", "sino_root": "感謝" },
+    { "term": "练习", "reading": "liànxí", "meaning": "practice", "sino_root": "練習" },
+    { "term": "旅行", "reading": "lǚxíng", "meaning": "travel", "sino_root": "旅行" }
+  ]
+}

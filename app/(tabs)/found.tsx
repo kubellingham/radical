@@ -32,7 +32,7 @@ const EMPTY_DRAFT: Omit<DraftItem, 'languageCode'> = {
   sinoRoot: '',
 };
 
-export default function Dump() {
+export default function Found() {
   const insets = useSafeAreaInsets();
   const { setup } = useApp();
   // Script gate: vocabulary only for languages whose script is learned.
@@ -100,7 +100,7 @@ export default function Dump() {
   }
 
   return (
-    <Screen title="Dump">
+    <Screen title="Found">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={insets.top}

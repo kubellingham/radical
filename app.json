@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Mission Control",
-    "slug": "mission-control",
+    "name": "Polyglot",
+    "slug": "polyglot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "missioncontrol",
+    "scheme": "polyglot",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#16181D",
     "newArchEnabled": true,

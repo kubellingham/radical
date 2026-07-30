@@ -26,7 +26,7 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen name="today" options={{ title: 'Today' }} />
-      <Tabs.Screen name="dump" options={{ title: 'Dump' }} />
+      <Tabs.Screen name="found" options={{ title: 'Found' }} />
       <Tabs.Screen name="feed" options={{ title: 'Feed' }} />
       <Tabs.Screen name="check" options={{ title: 'Check' }} />
       <Tabs.Screen name="record" options={{ title: 'Record' }} />

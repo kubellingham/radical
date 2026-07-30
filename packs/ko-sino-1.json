@@ -1,0 +1,30 @@
+{
+  "language_code": "ko",
+  "context_tag": "any",
+  "level": 1,
+  "title": "Korean · sino roots · 1",
+  "version": 1,
+  "sort_order": 6,
+  "items": [
+    { "term": "시간", "reading": "sigan", "meaning": "time", "sino_root": "時間" },
+    { "term": "학생", "reading": "haksaeng", "meaning": "student", "sino_root": "学生" },
+    { "term": "전화", "reading": "jeonhwa", "meaning": "telephone", "sino_root": "電話" },
+    { "term": "준비", "reading": "junbi", "meaning": "preparation", "sino_root": "準備" },
+    { "term": "도서관", "reading": "doseogwan", "meaning": "library", "sino_root": "図書館" },
+    { "term": "대학", "reading": "daehak", "meaning": "university", "sino_root": "大学" },
+    { "term": "학교", "reading": "hakgyo", "meaning": "school", "sino_root": "学校" },
+    { "term": "은행", "reading": "eunhaeng", "meaning": "bank", "sino_root": "銀行" },
+    { "term": "음악", "reading": "eumak", "meaning": "music", "sino_root": "音楽" },
+    { "term": "운동", "reading": "undong", "meaning": "exercise, sport", "sino_root": "運動" },
+    { "term": "지도", "reading": "jido", "meaning": "map", "sino_root": "地図" },
+    { "term": "교실", "reading": "gyosil", "meaning": "classroom", "sino_root": "教室" },
+    { "term": "세계", "reading": "segye", "meaning": "world", "sino_root": "世界" },
+    { "term": "문화", "reading": "munhwa", "meaning": "culture", "sino_root": "文化" },
+    { "term": "필요", "reading": "piryo", "meaning": "necessary", "sino_root": "必要" },
+    { "term": "간단", "reading": "gandan", "meaning": "simple", "sino_root": "簡単" },
+    { "term": "설명", "reading": "seolmyeong", "meaning": "explanation", "sino_root": "説明" },
+    { "term": "감사", "reading": "gamsa", "meaning": "gratitude, thanks", "sino_root": "感謝" },
+    { "term": "연습", "reading": "yeonseup", "meaning": "practice", "sino_root": "練習" },
+    { "term": "여행", "reading": "yeohaeng", "meaning": "travel", "sino_root": "旅行" }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "language_code": "ja",
+  "context_tag": "any",
+  "level": 1,
+  "title": "Japanese · sino roots · 1",
+  "version": 1,
+  "sort_order": 6,
+  "items": [
+    { "term": "時間", "reading": "じかん", "meaning": "time", "sino_root": "時間" },
+    { "term": "学生", "reading": "がくせい", "meaning": "student", "sino_root": "学生" },
+    { "term": "電話", "reading": "でんわ", "meaning": "telephone", "sino_root": "電話" },
+    { "term": "準備", "reading": "じゅんび", "meaning": "preparation", "sino_root": "準備" },
+    { "term": "図書館", "reading": "としょかん", "meaning": "library", "sino_root": "図書館" },
+    { "term": "大学", "reading": "だいがく", "meaning": "university", "sino_root": "大学" },
+    { "term": "学校", "reading": "がっこう", "meaning": "school", "sino_root": "学校" },
+    { "term": "銀行", "reading": "ぎんこう", "meaning": "bank", "sino_root": "銀行" },
+    { "term": "音楽", "reading": "おんがく", "meaning": "music", "sino_root": "音楽" },
+    { "term": "運動", "reading": "うんどう", "meaning": "exercise, sport", "sino_root": "運動" },
+    { "term": "地図", "reading": "ちず", "meaning": "map", "sino_root": "地図" },
+    { "term": "教室", "reading": "きょうしつ", "meaning": "classroom", "sino_root": "教室" },
+    { "term": "世界", "reading": "せかい", "meaning": "world", "sino_root": "世界" },
+    { "term": "文化", "reading": "ぶんか", "meaning": "culture", "sino_root": "文化" },
+    { "term": "必要", "reading": "ひつよう", "meaning": "necessary", "sino_root": "必要" },
+    { "term": "簡単", "reading": "かんたん", "meaning": "simple", "sino_root": "簡単" },
+    { "term": "説明", "reading": "せつめい", "meaning": "explanation", "sino_root": "説明" },
+    { "term": "感謝", "reading": "かんしゃ", "meaning": "gratitude, thanks", "sino_root": "感謝" },
+    { "term": "練習", "reading": "れんしゅう", "meaning": "practice", "sino_root": "練習" },
+    { "term": "旅行", "reading": "りょこう", "meaning": "travel", "sino_root": "旅行" }
+  ]
+}

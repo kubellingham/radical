@@ -1,0 +1,74 @@
+{
+  "language_code": "es",
+  "context_tag": "café",
+  "level": 1,
+  "title": "Spanish · café · 1",
+  "version": 1,
+  "sort_order": 41,
+  "items": [
+    {
+      "term": "un café solo",
+      "reading": "",
+      "meaning": "an espresso",
+      "example": "Un café solo, por favor.",
+      "example_meaning": "An espresso, please.",
+      "sino_root": ""
+    },
+    {
+      "term": "la cuenta",
+      "reading": "",
+      "meaning": "the bill",
+      "example": "¿Me trae la cuenta?",
+      "example_meaning": "Could you bring me the bill?",
+      "sino_root": ""
+    },
+    {
+      "term": "para llevar",
+      "reading": "",
+      "meaning": "to take away",
+      "example": "Lo quiero para llevar.",
+      "example_meaning": "I'd like it to take away.",
+      "sino_root": ""
+    },
+    {
+      "term": "la terraza",
+      "reading": "",
+      "meaning": "the outdoor seating",
+      "example": "¿Podemos sentarnos en la terraza?",
+      "example_meaning": "Can we sit outside?",
+      "sino_root": ""
+    },
+    {
+      "term": "sin azúcar",
+      "reading": "",
+      "meaning": "without sugar",
+      "example": "Un cortado sin azúcar.",
+      "example_meaning": "A cortado without sugar.",
+      "sino_root": ""
+    },
+    {
+      "term": "otro",
+      "reading": "",
+      "meaning": "another",
+      "example": "¿Me pone otro, por favor?",
+      "example_meaning": "Could I have another, please?",
+      "sino_root": ""
+    },
+    {
+      "term": "el camarero",
+      "reading": "",
+      "meaning": "the waiter",
+      "example": "El camarero ya viene.",
+      "example_meaning": "The waiter is coming.",
+      "sino_root": ""
+    },
+    {
+      "term": "está ocupado",
+      "reading": "",
+      "meaning": "it's taken",
+      "example": "Perdona, ¿está ocupado?",
+      "example_meaning": "Sorry, is this seat taken?",
+      "sino_root": ""
+    }
+  ]
+}

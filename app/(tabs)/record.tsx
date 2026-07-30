@@ -149,8 +149,8 @@ export default function Record() {
 
         {sessions.length === 0 ? (
           <Text style={styles.empty}>
-            Nothing logged yet. Dump what you learn, or log study time above — the hours count from
-            here on.
+            Nothing logged yet. Put what you learn into Found, or log study time above — the hours
+            count from here on.
           </Text>
         ) : (
           sessions.map((s) => (

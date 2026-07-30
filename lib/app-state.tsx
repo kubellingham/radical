@@ -1,10 +1,12 @@
 import type { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
+import { syncPacks } from './packs';
 import { flushOutbox, pullSessions } from './repo';
 import { hasPendingPush, loadSetup, persistSetup, pullSetup, retryPendingPush } from './setup';
+import { seedStarterPacks } from './starter-packs';
 import { supabase, supabaseConfigured } from './supabase';
-import type { SetupState } from './types';
+import type { LanguageCode, SetupState } from './types';
 
 interface AppState {
   ready: boolean;
@@ -40,6 +42,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
+        await seedStarterPacks();
         const local = await loadSetup();
         if (cancelled) return;
         setSetup(local);
@@ -104,13 +107,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ready, session, completed, pendingSync]);
 
-  // Drain anything the Dump/Record screens queued while offline, and adopt
-  // the session log from other devices. Quiet on failure; retried next boot.
+  // Drain anything the Found/Record screens queued while offline, adopt the
+  // session log from other devices, and top up the pack cache. Quiet on
+  // failure; retried next boot.
+  const languageKey = setup.languages.map((l) => l.code).join(',');
   useEffect(() => {
     if (!ready || !session || !completed) return;
     flushOutbox().catch(() => {});
     pullSessions().catch(() => {});
-  }, [ready, session, completed]);
+    syncPacks(languageKey ? (languageKey.split(',') as LanguageCode[]) : []).catch(() => {});
+  }, [ready, session, completed, languageKey]);
 
   const completeSetup = useCallback((state: SetupState, synced: boolean) => {
     setSetup(state);

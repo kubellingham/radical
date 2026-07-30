@@ -59,7 +59,7 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <Text style={styles.mark}>語</Text>
-        <Text style={styles.title}>Mission Control</Text>
+        <Text style={styles.title}>Polyglot</Text>
         <Text style={styles.sub}>One account. Phone and web, same log.</Text>
 
         <TextInput
