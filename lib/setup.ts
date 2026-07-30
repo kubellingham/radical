@@ -38,9 +38,14 @@ export async function hasPendingPush(): Promise<boolean> {
 export async function saveSetup(
   languages: LanguageConfig[]
 ): Promise<{ state: SetupState; synced: boolean }> {
+  // The day this started is set once and never again. Today links straight
+  // to this screen for editing scripts, so overwriting it here reset "Day N
+  // of 1825" to Day 1 every time a script was marked learned — and Day N,
+  // the depth of the line column and every anniversary all read from it.
+  const existing = await loadSetup();
   const state: SetupState = {
     completed: true,
-    completedAt: new Date().toISOString(),
+    completedAt: existing.completedAt ?? new Date().toISOString(),
     languages,
   };
   await localStore.set(SETUP_KEY, state);
@@ -129,9 +134,17 @@ export async function pullSetup(): Promise<SetupState | null> {
       sortOrder: row.sort_order,
       status: row.status as LanguageStatus,
     }));
+    // The earliest row, not the first one the sort happened to return. The
+    // query orders by sort_order, so data[0] is whichever language sorts
+    // first — which is only the oldest by coincidence, and stops being so
+    // the moment a language is added later.
+    const started = data
+      .map((row) => row.created_at)
+      .filter(Boolean)
+      .sort()[0];
     return {
       completed: true,
-      completedAt: data[0].created_at ?? new Date().toISOString(),
+      completedAt: started ?? new Date().toISOString(),
       languages,
     };
   } catch {

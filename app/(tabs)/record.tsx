@@ -1,4 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
+import { Link } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -145,6 +146,10 @@ export default function Record() {
           </Pressable>
         )}
 
+        <Link href="/line" style={styles.lines}>
+          The line, and every one before it
+        </Link>
+
         <View style={styles.divider} />
 
         {sessions.length === 0 ? (
@@ -274,6 +279,12 @@ const styles = StyleSheet.create({
   logError: {
     color: colors.slate,
     fontSize: type.small,
+  },
+  lines: {
+    color: colors.slate,
+    fontSize: type.small,
+    textDecorationLine: 'underline',
+    marginTop: space.lg,
   },
   divider: {
     borderTopWidth: StyleSheet.hairlineWidth,

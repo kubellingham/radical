@@ -17,6 +17,7 @@ import { colors, space, type } from '@/constants/theme';
 import { useApp } from '@/lib/app-state';
 import { languageByCode } from '@/lib/languages';
 import { loadLines, lineFor, saveLine, suggestedLanguage, writableLanguages } from '@/lib/line';
+import { type Observation, observation } from '@/lib/observations';
 import { localDay } from '@/lib/repo';
 import { sentenceOfTheDay } from '@/lib/sets';
 import type { DailyLine, LanguageCode, LexemeSet } from '@/lib/types';
@@ -44,6 +45,7 @@ export default function Line() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [seed, setSeed] = useState<LexemeSet | null>(null);
+  const [said, setSaid] = useState<Observation | null>(null);
 
   const writable = writableLanguages(setup.languages);
   const day = localDay();
@@ -63,6 +65,10 @@ export default function Line() {
       setText(mine?.text ?? '');
       setEditing(!mine);
       setSeed(sentence);
+    });
+    // The report: one line, often none. Never blocks the writing surface.
+    observation().then((o) => {
+      if (!cancelled) setSaid(o);
     });
     return () => {
       cancelled = true;
@@ -167,6 +173,10 @@ export default function Line() {
           ) : null}
 
           <View style={styles.divider} />
+
+          {/* The report. One thing, only when it clears its threshold, and
+              nothing at all the rest of the time. */}
+          {said ? <Text style={styles.said}>{said.text}</Text> : null}
 
           {past.length === 0 ? (
             <Text style={styles.quiet}>
@@ -282,6 +292,12 @@ const styles = StyleSheet.create({
     fontSize: type.small,
     lineHeight: type.small * 1.6,
     marginTop: space.sm,
+  },
+  said: {
+    color: colors.paper,
+    fontSize: type.small,
+    lineHeight: type.small * 1.6,
+    marginBottom: space.lg,
   },
   entry: {
     marginBottom: space.lg,
