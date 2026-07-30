@@ -16,7 +16,13 @@ const NAMES: Record<string, string> = {
 const CHECK_SCHEMA = {
   type: 'object',
   properties: {
-    reply: { type: 'string' },
+    // Split deliberately. When the question lived inside one free-form
+    // "reply" field the model kept dropping it — answering "Right, agua."
+    // and leaving the next question only in the metadata, which strands the
+    // screen waiting for an answer to a question nobody was shown. Two
+    // fields make that failure visible and recoverable.
+    reaction: { type: 'string' },
+    question: { type: 'string' },
     ask: {
       type: 'object',
       properties: {
@@ -41,7 +47,7 @@ const CHECK_SCHEMA = {
     },
     done: { type: 'boolean' },
   },
-  required: ['reply', 'ask', 'verdicts', 'done'],
+  required: ['reaction', 'question', 'ask', 'verdicts', 'done'],
   additionalProperties: false,
 } as const;
 
@@ -57,9 +63,11 @@ Every turn, do three things.
    - missed: blank, wrong, or any form of "I don't know".
    Return one verdict for what you asked last turn, and nothing else. On the first turn there is nothing to grade, so return no verdicts.
 
-2. Reply in one or two short sentences. Say plainly whether it was right. When it wasn't, give the answer. No praise, no encouragement, no exclamation marks, no emoji, no "great", no "nice".
+2. Write "reaction": one or two short sentences on the last answer. Say plainly whether it was right. When it wasn't, give the answer. No praise, no encouragement, no exclamation marks, no emoji, no "great", no "nice". On the first turn there is nothing to react to, so leave it empty.
 
-3. Ask the next thing. Name a language and a small everyday situation, and ask for one word or phrase from the list. Put set_id and language_code in "ask" so the grading has something to point at.
+3. Write "question": the next question, in full, as the learner will read it. Name a language and a small everyday situation, and ask for one word or phrase from the list. Put the same word and language in "ask" as set_id and language_code.
+
+"question" and "ask" must always agree, and neither may be left out while the other is filled in. The learner is shown "reaction" and "question" and nothing else — if the question is not written out in "question", they are staring at a blank prompt with no idea what was asked. Putting it only in "ask" is the single worst thing you can do here.
 
 Rules:
 - Only ever ask about the allowed language codes. Never any other language.
@@ -67,8 +75,8 @@ Rules:
 - Never ask about the same language twice in a row.
 - Never mention scores, levels, strength, streaks, intervals, due dates or how any of this is judged. The learner must not be able to tell that grading exists.
 - Write in English. The only foreign text you produce is a word you are giving away because they missed it.
-- Keep it human. "Someone hands you a coffee. How do you say thank you in Korean?" — not "Translate: thank you (Korean)".
-- When told this is the final turn: set done to true, leave ask empty (set_id "" and language_code ""), grade the last answer, and close with one flat line. No summary of how they did, no encouragement.
+- Keep it human. "Someone hands you a coffee. How do you say thank you in Korean?" — not "Translate: thank you (Korean)". This holds for the opening question too: start in a situation, not with a preamble about starting.
+- When told this is the final turn: set done to true, leave question empty and ask empty (set_id "" and language_code ""), grade the last answer, and close with one flat line in "reaction". No summary of how they did, no encouragement.
 
 Reply with JSON only — no prose, no code fences.`;
 
@@ -198,10 +206,18 @@ This is turn ${turn} of ${total}.${last ? ' This is the FINAL turn — grade, cl
 
     const knownIds = new Set(sets.map((s) => s.id));
     const rawAsk = parsed.ask as { set_id?: string; language_code?: string } | undefined;
-    // Drop an ask that points at a set we didn't send or a language that
-    // isn't unlocked — better no question than the wrong one.
+    const reaction = typeof parsed.reaction === 'string' ? parsed.reaction.trim() : '';
+    const question = typeof parsed.question === 'string' ? parsed.question.trim() : '';
+
+    // An ask survives only if it points at a set we sent, in a language that
+    // is unlocked, AND the question was actually written out for the learner
+    // to read. A question nobody can see is worse than no question: the
+    // screen would sit waiting on an answer to nothing.
     const nextAsk =
-      rawAsk?.set_id && knownIds.has(rawAsk.set_id) && allowed.includes(rawAsk.language_code ?? '')
+      rawAsk?.set_id &&
+      knownIds.has(rawAsk.set_id) &&
+      allowed.includes(rawAsk.language_code ?? '') &&
+      question.length > 0
         ? { set_id: rawAsk.set_id, language_code: rawAsk.language_code }
         : null;
 
@@ -218,8 +234,15 @@ This is turn ${turn} of ${total}.${last ? ' This is the FINAL turn — grade, cl
       .slice(0, 4);
 
     const done = parsed.done === true || last || !nextAsk;
+    // One visible turn: what just happened, then what's being asked. The
+    // question is dropped when the ask didn't survive, so the two can never
+    // disagree on screen.
+    const reply = [reaction, done ? '' : question].filter(Boolean).join(' ');
+    // Nothing to show is a broken turn, not a quiet one. Fail so the screen
+    // falls back instead of rendering a blank line.
+    if (!reply) throw new Error('empty turn');
     return json({
-      reply: typeof parsed.reply === 'string' ? parsed.reply.trim() : '',
+      reply,
       ask: done ? null : nextAsk,
       verdicts,
       done,
