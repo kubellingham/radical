@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 
 import { syncPacks } from './packs';
 import { flushOutbox, pullSessions } from './repo';
-import { pullSets, refillIfLow } from './sets';
+import { backfillCaptured, pullSets, refillIfLow } from './sets';
 import { hasPendingPush, loadSetup, persistSetup, pullSetup, retryPendingPush } from './setup';
 import { seedStarterPacks } from './starter-packs';
 import { seedStarterSets } from './starter-sets';
@@ -142,8 +142,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     flushOutbox().catch(() => {});
     pullSessions().catch(() => {});
     syncPacks(languageKey ? (languageKey.split(',') as LanguageCode[]) : []).catch(() => {});
-    // Adopt the account's bank, then top it up if it's still thin.
+    // Adopt the account's bank, bring anything captured before sets existed
+    // into it, then top up if it's still thin.
     pullSets()
+      .then(() => backfillCaptured())
       .then(() => refillIfLow('word'))
       .then(() => refillIfLow('sentence'))
       .catch(() => {});

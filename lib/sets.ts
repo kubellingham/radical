@@ -138,6 +138,39 @@ export async function generateBatch(
   }
 }
 
+const BACKFILL_KEY = 'sets.backfilled';
+
+/**
+ * Words captured before sets existed would otherwise never appear again —
+ * the Feed draws sets, and expansion only runs on new saves. Runs once.
+ */
+export async function backfillCaptured(): Promise<number> {
+  try {
+    if (await localStore.get<boolean>(BACKFILL_KEY)) return 0;
+    const { loadItems } = await import('./repo');
+    const items = await loadItems();
+    if (items.length === 0) {
+      await localStore.set(BACKFILL_KEY, true);
+      return 0;
+    }
+    // Skip anything whose meaning is already a set.
+    const known = new Set((await loadSets()).map((s) => s.gloss.trim().toLowerCase()));
+    const pending = items.filter((i) => i.meaning && !known.has(i.meaning.trim().toLowerCase()));
+    if (pending.length === 0) {
+      await localStore.set(BACKFILL_KEY, true);
+      return 0;
+    }
+    const added = await expandCaptured(
+      pending.map((i) => ({ term: i.term, languageCode: i.languageCode, meaning: i.meaning }))
+    );
+    // Only mark done when the call actually succeeded, so a failure retries.
+    if (added > 0 || pending.length === 0) await localStore.set(BACKFILL_KEY, true);
+    return added;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * A word captured in one language comes back rendered in all five, so what
  * you found out in the world joins the same rotation as everything else.
