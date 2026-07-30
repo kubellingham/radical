@@ -18,10 +18,14 @@ import { useApp } from '@/lib/app-state';
 import { languageByCode } from '@/lib/languages';
 import { loadLines, lineFor, saveLine, suggestedLanguage, writableLanguages } from '@/lib/line';
 import { localDay } from '@/lib/repo';
-import type { DailyLine, LanguageCode } from '@/lib/types';
+import { sentenceOfTheDay } from '@/lib/sets';
+import type { DailyLine, LanguageCode, LexemeSet } from '@/lib/types';
 
-// A real sentence in each language, so the empty box shows the size of the
-// thing being asked for rather than the word "example".
+// The blank line is the whole problem. Rather than invent a prompt, the box
+// shows today's sentence in the language you are about to write in — the same
+// sentence already sitting at the top of Today. It is real, it is the right
+// size, and it changes daily, so it shows what is being asked for without
+// asking anything. These are the fallback for a bank with no sentence in it.
 const SHAPES: Record<LanguageCode, string> = {
   ja: '今日は雨だった',
   ko: '오늘 커피를 두 잔 마셨다',
@@ -39,22 +43,27 @@ export default function Line() {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [seed, setSeed] = useState<LexemeSet | null>(null);
 
   const writable = writableLanguages(setup.languages);
   const day = localDay();
 
   const load = useCallback(() => {
     let cancelled = false;
-    Promise.all([lineFor(day), loadLines(), suggestedLanguage(setup.languages)]).then(
-      ([mine, all, suggested]) => {
-        if (cancelled) return;
-        setToday(mine);
-        setPast(all.filter((l) => l.date !== day));
-        setLanguage(mine?.languageCode ?? suggested);
-        setText(mine?.text ?? '');
-        setEditing(!mine);
-      }
-    );
+    Promise.all([
+      lineFor(day),
+      loadLines(),
+      suggestedLanguage(setup.languages),
+      sentenceOfTheDay(),
+    ]).then(([mine, all, suggested, sentence]) => {
+      if (cancelled) return;
+      setToday(mine);
+      setPast(all.filter((l) => l.date !== day));
+      setLanguage(mine?.languageCode ?? suggested);
+      setText(mine?.text ?? '');
+      setEditing(!mine);
+      setSeed(sentence);
+    });
     return () => {
       cancelled = true;
     };
@@ -121,7 +130,7 @@ export default function Line() {
 
               <TextInput
                 style={styles.input}
-                placeholder={language ? SHAPES[language] : ''}
+                placeholder={language ? shapeFor(seed, language) : ''}
                 placeholderTextColor={colors.slate}
                 value={text}
                 onChangeText={setText}
@@ -177,6 +186,12 @@ export default function Line() {
       </KeyboardAvoidingView>
     </Screen>
   );
+}
+
+/** Today's sentence in the language being written in, or a stand-in. */
+function shapeFor(sentence: LexemeSet | null, code: LanguageCode): string {
+  const rendering = sentence?.renderings.find((r) => r.languageCode === code);
+  return rendering?.term || SHAPES[code];
 }
 
 function formatDate(day: string): string {
