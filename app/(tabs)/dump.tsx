@@ -10,9 +10,11 @@ import {
   View,
 } from 'react-native';
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { Screen } from '@/components/screen';
 import { colors, space, type } from '@/constants/theme';
-import { supabaseConfigured } from '@/lib/app-state';
+import { supabaseConfigured, useApp } from '@/lib/app-state';
 import { parseDump } from '@/lib/dump';
 import { DEFAULT_LANGUAGES } from '@/lib/languages';
 import { saveDump } from '@/lib/repo';
@@ -20,8 +22,7 @@ import type { ContextTag, DraftItem } from '@/lib/types';
 
 const CONTEXTS: ContextTag[] = ['café', 'class', 'transit', 'gym', 'home', 'street'];
 
-const EMPTY_DRAFT: DraftItem = {
-  languageCode: 'ja',
+const EMPTY_DRAFT: Omit<DraftItem, 'languageCode'> = {
   term: '',
   reading: '',
   meaning: '',
@@ -32,6 +33,12 @@ const EMPTY_DRAFT: DraftItem = {
 };
 
 export default function Dump() {
+  const insets = useSafeAreaInsets();
+  const { setup } = useApp();
+  // Script gate: vocabulary only for languages whose script is learned.
+  const languages = setup.languages.length > 0 ? setup.languages : DEFAULT_LANGUAGES;
+  const unlocked = languages.filter((l) => l.scriptLearned);
+  const unlockedCodes = new Set(unlocked.map((l) => l.code));
   const [phase, setPhase] = useState<'compose' | 'confirm'>('compose');
   const [text, setText] = useState('');
   const [minutes, setMinutes] = useState('');
@@ -46,7 +53,11 @@ export default function Dump() {
     setLine(null);
     try {
       const result = await parseDump(text.trim());
-      setDrafts(result.items.length > 0 ? result.items : [{ ...EMPTY_DRAFT, term: text.trim() }]);
+      setDrafts(
+        result.items.length > 0
+          ? result.items
+          : [{ ...EMPTY_DRAFT, languageCode: unlocked[0]?.code ?? 'es', term: text.trim() }]
+      );
       if (!result.remote) setLine('Parsed locally — the AI parser was unreachable.');
       setPhase('confirm');
     } finally {
@@ -54,14 +65,16 @@ export default function Dump() {
     }
   }
 
+  const fileable = drafts.filter(
+    (d) => d.term.trim().length > 0 && unlockedCodes.has(d.languageCode)
+  );
+
   async function save() {
-    if (busy) return;
-    const valid = drafts.filter((d) => d.term.trim().length > 0);
-    if (valid.length === 0) return;
+    if (busy || fileable.length === 0) return;
     setBusy(true);
     try {
       const { itemCount, synced } = await saveDump({
-        drafts: valid,
+        drafts: fileable,
         minutes: Math.max(0, parseInt(minutes, 10) || 0),
         note: note.trim(),
       });
@@ -75,6 +88,8 @@ export default function Dump() {
           ? `Filed. ${itemCount} ${itemCount === 1 ? 'item' : 'items'}.`
           : `Filed locally. ${itemCount} ${itemCount === 1 ? 'item' : 'items'} — syncs when reachable.`
       );
+    } catch {
+      setLine('Could not file — nothing was saved.');
     } finally {
       setBusy(false);
     }
@@ -88,7 +103,7 @@ export default function Dump() {
     <Screen title="Dump">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={100}
+        keyboardVerticalOffset={insets.top}
         style={styles.fill}>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -142,7 +157,7 @@ export default function Dump() {
               {drafts.map((draft, i) => (
                 <View key={i} style={styles.card}>
                   <View style={styles.chipRow}>
-                    {DEFAULT_LANGUAGES.map((lang) => {
+                    {unlocked.map((lang) => {
                       const active = draft.languageCode === lang.code;
                       return (
                         <Pressable
@@ -161,6 +176,12 @@ export default function Dump() {
                       <Text style={styles.remove}>remove</Text>
                     </Pressable>
                   </View>
+                  {!unlockedCodes.has(draft.languageCode) ? (
+                    <Text style={styles.locked}>
+                      {languages.find((l) => l.code === draft.languageCode)?.name ?? 'This language'}{' '}
+                      is in script mode — learn its script first, or reassign the item.
+                    </Text>
+                  ) : null}
                   <Field label="term" value={draft.term} onChange={(v) => patch(i, { term: v })} />
                   <Field
                     label="reading"
@@ -202,20 +223,28 @@ export default function Dump() {
                 </View>
               ))}
 
-              <Pressable onPress={() => setDrafts((prev) => [...prev, { ...EMPTY_DRAFT }])}>
+              <Pressable
+                onPress={() =>
+                  setDrafts((prev) => [
+                    ...prev,
+                    { ...EMPTY_DRAFT, languageCode: unlocked[0]?.code ?? 'es' },
+                  ])
+                }>
                 <Text style={styles.add}>+ add item</Text>
               </Pressable>
 
               <Pressable
-                style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-                disabled={busy}
+                style={({ pressed }) => [
+                  styles.action,
+                  fileable.length === 0 && styles.actionDisabled,
+                  pressed && styles.pressed,
+                ]}
+                disabled={busy || fileable.length === 0}
                 onPress={save}>
                 <Text style={styles.actionText}>
                   {busy
                     ? '…'
-                    : `File ${drafts.filter((d) => d.term.trim()).length} ${
-                        drafts.filter((d) => d.term.trim()).length === 1 ? 'item' : 'items'
-                      }`}
+                    : `File ${fileable.length} ${fileable.length === 1 ? 'item' : 'items'}`}
                 </Text>
               </Pressable>
               <Pressable onPress={() => setPhase('compose')}>
@@ -337,6 +366,11 @@ const styles = StyleSheet.create({
   remove: {
     color: colors.slate,
     fontSize: type.micro,
+  },
+  locked: {
+    color: colors.slate,
+    fontSize: type.small,
+    marginBottom: space.sm,
   },
   fieldRow: {
     flexDirection: 'row',

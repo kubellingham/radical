@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -37,6 +38,10 @@ export default function Today() {
             </View>
           </View>
         ))}
+
+        <Link href="/setup" style={styles.edit}>
+          Edit languages and scripts
+        </Link>
 
         <Text style={styles.footer}>
           Missions and the drift watch arrive in Phase 4. Until then: Dump what you learn, and the
@@ -79,6 +84,12 @@ const styles = StyleSheet.create({
     color: colors.slate,
     fontSize: type.small,
     marginTop: 2,
+  },
+  edit: {
+    color: colors.slate,
+    fontSize: type.small,
+    textDecorationLine: 'underline',
+    marginTop: space.lg,
   },
   footer: {
     color: colors.slate,

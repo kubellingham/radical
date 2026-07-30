@@ -57,14 +57,39 @@ For each vocabulary item in the text:
 
 Split multi-word notes into separate items. Preserve what the learner actually wrote; fill gaps conservatively. Do not invent items that are not in the text.`;
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return json({ error: 'POST only' }, 405);
+// The Supabase URL and publishable key are client-public values by design;
+// here they only serve to verify the caller's session token.
+const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://vjedphmlpmricpvrnzsw.supabase.co';
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ?? 'sb_publishable_sRN92h10e4r9xQ65sf_KWQ_ztUKSZUP';
+
+// This endpoint spends the owner's Anthropic credit, so it accepts only
+// requests carrying a valid Supabase session token.
+async function authorized(request: Request): Promise<boolean> {
+  const header = request.headers.get('authorization') ?? '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, authorization: `Bearer ${token}` },
+    });
+    return res.ok;
+  } catch {
+    return false;
   }
+}
+
+// Web-handler form: Vercel's Node runtime dispatches method-named exports
+// with (Request) => Response; a default export would get the legacy
+// (req, res) signature and hang.
+export async function POST(request: Request): Promise<Response> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     // Not configured yet — the client degrades to local parsing, quietly.
     return json({ error: 'parser not configured' }, 503);
+  }
+  if (!(await authorized(request))) {
+    return json({ error: 'unauthorized' }, 401);
   }
 
   let text: unknown;

@@ -19,6 +19,7 @@ export default function Record() {
   const [note, setNote] = useState('');
   const [language, setLanguage] = useState<LanguageCode | null>(null);
   const [busy, setBusy] = useState(false);
+  const [logLine, setLogLine] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     let cancelled = false;
@@ -60,6 +61,7 @@ export default function Record() {
     const min = parseInt(minutes, 10) || 0;
     if (busy || min <= 0) return;
     setBusy(true);
+    setLogLine(null);
     try {
       await logSession({ kind: 'external', minutes: min, note: note.trim(), languageCode: language });
       setMinutes('');
@@ -67,6 +69,8 @@ export default function Record() {
       setLanguage(null);
       setLogging(false);
       refresh();
+    } catch {
+      setLogLine('Could not log — nothing was saved.');
     } finally {
       setBusy(false);
     }
@@ -94,6 +98,7 @@ export default function Record() {
 
         {logging ? (
           <View style={styles.logForm}>
+            {logLine ? <Text style={styles.logError}>{logLine}</Text> : null}
             <View style={styles.logRow}>
               <TextInput
                 style={[styles.input, styles.minutes]}
@@ -263,6 +268,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   logCancel: {
+    color: colors.slate,
+    fontSize: type.small,
+  },
+  logError: {
     color: colors.slate,
     fontSize: type.small,
   },

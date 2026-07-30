@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import type { DraftItem, LanguageCode } from './types';
 
 // On web the function is same-origin; native builds need the absolute URL.
@@ -22,11 +23,18 @@ export interface ParseResult {
 
 export async function parseDump(text: string): Promise<ParseResult> {
   try {
+    // The endpoint spends the owner's Anthropic credit, so it requires the
+    // Supabase session token. Signed out or local-only → parse locally.
+    if (!supabase) throw new Error('local-only');
+    const { data: auth } = await supabase.auth.getSession();
+    const token = auth.session?.access_token;
+    if (!token) throw new Error('no session');
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 25000);
     const response = await fetch(`${API_BASE}/api/dump`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({ text }),
       signal: controller.signal,
     });
@@ -63,7 +71,7 @@ const SEPARATORS = [/\s+means\s+/i, /\s*=\s*/, /\s+-\s+/, /\s*[—–]\s*/, /\s*
 export function heuristicParse(text: string): DraftItem[] {
   const lines = text
     .split(/\n|[;,]\s+|\s+and\s+(?=\S)/)
-    .map((l) => l.replace(/^(learned|learnt|new word:?|today:?)\s+/i, '').trim())
+    .map((l) => l.replace(/^(learned|learnt|new word:?|today:?|and|also)\s+/i, '').trim())
     .filter((l) => l.length > 0);
 
   const items: DraftItem[] = [];

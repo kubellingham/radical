@@ -3,6 +3,7 @@
 import * as Crypto from 'expo-crypto';
 
 import { localStore } from './local-store';
+import { loadSetup } from './setup';
 import { supabase } from './supabase';
 import type { DraftItem, Item, ItemState, LanguageCode, SessionEntry, SessionKind } from './types';
 
@@ -11,10 +12,43 @@ const OUTBOX_KEY = 'outbox.queue';
 const LANGUAGE_IDS_KEY = 'languages.ids';
 
 interface OutboxEntry {
+  id: string;
   items: Item[];
   states: ItemState[];
   session: SessionEntry | null;
 }
+
+// crypto.randomUUID is missing on insecure web origins (plain-http dev
+// servers); build the v4 uuid from random bytes there.
+function newId(): string {
+  try {
+    return Crypto.randomUUID();
+  } catch {
+    const b = Crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
+}
+
+// The kv store has no transactions, so read-modify-write sequences on a
+// shared key must not interleave — a stale write-back silently drops the
+// other writer's data. One promise-chain lock per contended key.
+function makeLock() {
+  let chain: Promise<unknown> = Promise.resolve();
+  return function withLock<T>(fn: () => Promise<T>): Promise<T> {
+    const run = chain.then(fn, fn);
+    chain = run.then(
+      () => undefined,
+      () => undefined
+    );
+    return run;
+  };
+}
+
+const withOutboxLock = makeLock();
+const withSessionsLock = makeLock();
 
 /** The user's local day as YYYY-MM-DD — never the UTC day. */
 export function localDay(date = new Date()): string {
@@ -32,8 +66,14 @@ export async function saveDump(input: {
   const now = new Date().toISOString();
   const today = localDay();
 
-  const items: Item[] = input.drafts.map((d) => ({
-    id: Crypto.randomUUID(),
+  // Script gate, enforced at the write: no vocabulary for a language whose
+  // script isn't learned, whatever the screen above did.
+  const setup = await loadSetup();
+  const unlocked = new Set(setup.languages.filter((l) => l.scriptLearned).map((l) => l.code));
+  const drafts = input.drafts.filter((d) => unlocked.has(d.languageCode));
+
+  const items: Item[] = drafts.map((d) => ({
+    id: newId(),
     languageCode: d.languageCode,
     term: d.term.trim(),
     reading: blank(d.reading),
@@ -54,7 +94,7 @@ export async function saveDump(input: {
     timesMissed: 0,
   }));
   const session: SessionEntry = {
-    id: Crypto.randomUUID(),
+    id: newId(),
     date: today,
     kind: 'dump',
     languageCode: soleLanguage(items),
@@ -66,7 +106,7 @@ export async function saveDump(input: {
   for (const item of items) await localStore.set(`item.${item.id}`, item);
   for (const state of states) await localStore.set(`item_state.${state.itemId}`, state);
   await appendSession(session);
-  await enqueue({ items, states, session });
+  await enqueue({ id: newId(), items, states, session });
   const synced = await flushOutbox();
   return { itemCount: items.length, synced };
 }
@@ -78,7 +118,7 @@ export async function logSession(input: {
   languageCode: LanguageCode | null;
 }): Promise<{ synced: boolean }> {
   const session: SessionEntry = {
-    id: Crypto.randomUUID(),
+    id: newId(),
     date: localDay(),
     kind: input.kind,
     languageCode: input.languageCode,
@@ -87,7 +127,7 @@ export async function logSession(input: {
     createdAt: new Date().toISOString(),
   };
   await appendSession(session);
-  await enqueue({ items: [], states: [], session });
+  await enqueue({ id: newId(), items: [], states: [], session });
   const synced = await flushOutbox();
   return { synced };
 }
@@ -107,23 +147,41 @@ export async function outboxEmpty(): Promise<boolean> {
 }
 
 async function appendSession(session: SessionEntry): Promise<void> {
-  const log = await loadSessions();
-  log.unshift(session);
-  await localStore.set(SESSIONS_KEY, log);
+  await withSessionsLock(async () => {
+    const log = (await localStore.get<SessionEntry[]>(SESSIONS_KEY)) ?? [];
+    log.unshift(session);
+    await localStore.set(SESSIONS_KEY, log);
+  });
 }
 
 async function enqueue(entry: OutboxEntry): Promise<void> {
-  const queue = (await localStore.get<OutboxEntry[]>(OUTBOX_KEY)) ?? [];
-  queue.push(entry);
-  await localStore.set(OUTBOX_KEY, queue);
+  await withOutboxLock(async () => {
+    const queue = (await localStore.get<OutboxEntry[]>(OUTBOX_KEY)) ?? [];
+    queue.push(entry);
+    await localStore.set(OUTBOX_KEY, queue);
+  });
 }
+
+let flushInFlight: Promise<boolean> | null = null;
 
 /**
  * Push everything queued to Supabase. Entries that fail stay queued for the
- * next launch or save. Returns true when the queue is empty afterwards.
+ * next launch or save. Returns true when this call left nothing behind.
  */
-export async function flushOutbox(): Promise<boolean> {
-  const queue = (await localStore.get<OutboxEntry[]>(OUTBOX_KEY)) ?? [];
+export function flushOutbox(): Promise<boolean> {
+  // One flush at a time; concurrent callers share the in-flight result.
+  if (!flushInFlight) {
+    flushInFlight = doFlush().finally(() => {
+      flushInFlight = null;
+    });
+  }
+  return flushInFlight;
+}
+
+async function doFlush(): Promise<boolean> {
+  const queue = await withOutboxLock(
+    async () => (await localStore.get<OutboxEntry[]>(OUTBOX_KEY)) ?? []
+  );
   if (queue.length === 0) return true;
   if (!supabase) return false;
   const { data: auth } = await supabase.auth.getSession();
@@ -132,13 +190,21 @@ export async function flushOutbox(): Promise<boolean> {
   const ids = await languageIds();
   if (!ids) return false;
 
-  const remaining: OutboxEntry[] = [];
+  const pushed = new Set<string>();
   for (const entry of queue) {
     const ok = await pushEntry(entry, ids);
-    if (!ok) remaining.push(entry);
+    if (ok) pushed.add(entry.id);
   }
-  await localStore.set(OUTBOX_KEY, remaining);
-  return remaining.length === 0;
+  // Re-read under the lock and remove only what was pushed — entries
+  // enqueued while the network was in flight must survive.
+  await withOutboxLock(async () => {
+    const current = (await localStore.get<OutboxEntry[]>(OUTBOX_KEY)) ?? [];
+    await localStore.set(
+      OUTBOX_KEY,
+      current.filter((e) => !pushed.has(e.id))
+    );
+  });
+  return pushed.size === queue.length;
 }
 
 async function pushEntry(
@@ -248,13 +314,17 @@ export async function pullSessions(): Promise<SessionEntry[] | null> {
       note: r.note,
       createdAt: r.created_at,
     }));
-    const local = await loadSessions();
-    const seen = new Set(local.map((s) => s.id));
-    const merged = [...local, ...remote.filter((s) => !seen.has(s.id))].sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
-    await localStore.set(SESSIONS_KEY, merged);
-    return merged;
+    // Merge under the lock so a session logged while the fetch was in
+    // flight can't be clobbered by this write-back.
+    return await withSessionsLock(async () => {
+      const local = (await localStore.get<SessionEntry[]>(SESSIONS_KEY)) ?? [];
+      const seen = new Set(local.map((s) => s.id));
+      const merged = [...local, ...remote.filter((s) => !seen.has(s.id))].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt)
+      );
+      await localStore.set(SESSIONS_KEY, merged);
+      return merged;
+    });
   } catch {
     return null;
   }
