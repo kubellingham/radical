@@ -1,24 +1,28 @@
 import { Redirect } from 'expo-router';
 import React from 'react';
-import { View } from 'react-native';
 
-import { colors } from '@/constants/theme';
+import { Booting } from '@/components/booting';
 import { supabaseConfigured, useApp } from '@/lib/app-state';
 
 export default function Index() {
-  const { ready, resolving, session, setup } = useApp();
+  const { ready, resolving, authResolved, session, setup } = useApp();
 
-  if (!ready || resolving) {
-    // Ink while the local store loads or a signed-in fresh install checks
-    // Supabase for existing setup. Showing the form early would invite a
-    // second device to overwrite the first one's config.
-    return <View style={{ flex: 1, backgroundColor: colors.ink }} />;
+  // Reading the local store takes a few milliseconds. Nothing else waits.
+  if (!ready) return <Booting />;
+
+  // Setup already done on this device: open the app now. The data is local,
+  // so there is nothing to wait for — signing in only decides whether it
+  // also syncs, and that can settle behind the first screen.
+  if (setup.completed) {
+    if (supabaseConfigured && authResolved && !session) return <Redirect href="/sign-in" />;
+    return <Redirect href="/today" />;
   }
-  if (supabaseConfigured && !session) {
-    return <Redirect href="/sign-in" />;
-  }
-  if (!setup.completed) {
-    return <Redirect href="/setup" />;
-  }
-  return <Redirect href="/today" />;
+
+  // No local setup. Now the session genuinely matters: signed in means the
+  // config may already exist in the account, and showing the setup form
+  // would let this device overwrite it.
+  if (supabaseConfigured && !authResolved) return <Booting />;
+  if (supabaseConfigured && !session) return <Redirect href="/sign-in" />;
+  if (resolving) return <Booting note="Looking for your languages…" />;
+  return <Redirect href="/setup" />;
 }

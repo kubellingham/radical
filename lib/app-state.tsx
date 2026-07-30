@@ -9,9 +9,16 @@ import { supabase, supabaseConfigured } from './supabase';
 import type { LanguageCode, SetupState } from './types';
 
 interface AppState {
+  /** Local store has been read. The app can render from here on. */
   ready: boolean;
   /** True while a signed-in fresh install checks Supabase for existing setup. */
   resolving: boolean;
+  /**
+   * The session question has been settled one way or the other. Reading it
+   * costs a network round trip when the token needs refreshing, so nothing
+   * that can be answered locally is allowed to wait on it.
+   */
+  authResolved: boolean;
   session: Session | null;
   setup: SetupState;
   /** True when the setup exists locally but hasn't landed in Supabase yet. */
@@ -33,6 +40,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [authResolved, setAuthResolved] = useState(!supabaseConfigured);
   const [session, setSession] = useState<Session | null>(null);
   const [setup, setSetup] = useState<SetupState>(INITIAL_SETUP);
   const [pendingSync, setPendingSync] = useState(false);
@@ -40,27 +48,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Local first, and only local: this decides how fast the app opens, so
+    // nothing here is allowed to touch the network.
     (async () => {
       try {
-        await seedStarterPacks();
         const local = await loadSetup();
         if (cancelled) return;
         setSetup(local);
         setPendingSync(await hasPendingPush());
-        if (supabase) {
-          const { data } = await supabase.auth.getSession();
-          if (cancelled) return;
-          setSession(data.session);
-        }
       } catch {
-        // Whatever failed, the app still opens; local-only, defaults if need be.
+        // Whatever failed, the app still opens with defaults.
       } finally {
         if (!cancelled) setReady(true);
       }
     })();
 
+    // Everything below is off the critical path.
+    seedStarterPacks().catch(() => {});
+
+    if (supabase) {
+      // getSession refreshes an expired token over the network, which can
+      // take a second or more. Let it settle in its own time.
+      supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          if (!cancelled) setSession(data.session);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setAuthResolved(true);
+        });
+    }
+
     const auth = supabase?.auth.onAuthStateChange((_event, next) => {
       setSession(next);
+      setAuthResolved(true);
     });
     return () => {
       cancelled = true;
@@ -76,7 +98,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!ready || !session || completed) return;
     let cancelled = false;
     setResolving(true);
-    withTimeout(pullSetup(), 6000, null)
+    withTimeout(pullSetup(), 3000, null)
       .then(async (remote) => {
         if (cancelled) return;
         if (remote) {
@@ -124,7 +146,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AppContext.Provider value={{ ready, resolving, session, setup, pendingSync, completeSetup }}>
+    <AppContext.Provider
+      value={{ ready, resolving, authResolved, session, setup, pendingSync, completeSetup }}>
       {children}
     </AppContext.Provider>
   );
