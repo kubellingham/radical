@@ -2,7 +2,7 @@
 
 Personal five-language learning logbook. Expo SDK 54 + Expo Router + TypeScript, Supabase, deployed to iOS (EAS) and web (Vercel, `npx expo export -p web`). The build spec and the v2 direction update live with the owner; `docs/direction-v2.md` records what changed and what was pushed back on.
 
-Phases: 1 skeleton ✓ · 2 Found/Record ✓ · 3 Feed/packs ✓ · 4 Check/drift ✓ · 5 Mirror/report.
+Phases: 1 skeleton ✓ · 2 Found/Record ✓ · 3 Feed/packs ✓ · 4 Check/drift ✓ · 5 line/report ✓.
 
 ## Hard rules
 
@@ -15,6 +15,8 @@ Phases: 1 skeleton ✓ · 2 Found/Record ✓ · 3 Feed/packs ✓ · 4 Check/drif
 - **Copy is flat and factual.** "Korean, 5 days dark." No cheerleading, no streaks, no confetti; swipe physics on the Feed is the only animation.
 - **Secrets:** the model API key lives in Vercel serverless functions (`/api/*`), never in the app bundle. `/api/dump`, `/api/sets` and `/api/check` each take `OPENROUTER_API_KEY` or `ANTHROPIC_API_KEY` (OpenRouter wins if both are set) and require a valid Supabase session token — they spend real credit. Only `EXPO_PUBLIC_SUPABASE_URL` / `_ANON_KEY` / `_API_URL` are client-side.
 - **Drift is the Check's alone.** Every card shows all five languages, so only the Check — which asks one at a time — can tell them apart. `lib/drift.ts` flags at most one language, only after a Check exists, only at four days dark.
+- **The line is the one irreplaceable thing.** Every card in the bank is vocabulary a model could generate again; the 1,825 daily lines are not. They are keyed by local day (`line.<YYYY-MM-DD>`), written only for today — a past line is what you could write *then*, and editing it makes the anniversary a lie — and they sync through the outbox, never fire-and-forget.
+- **The report is not a screen.** At most one observation, at the head of the line column, absent whenever nothing clears its threshold. It may never name a strength, an interval or a due date — and it may never reveal that grading exists, which rules out "the word you keep missing" and every sibling of it, however tempting. `lib/observations.ts` says why.
 
 ## Checks before committing
 
