@@ -249,11 +249,25 @@ export async function expandCaptured(
     const token = data.session?.access_token;
     if (!token) return 0;
 
+    // Ask about each word once. Sent the same term twice, the model answers
+    // twice in slightly different words — "the bill" and "the bill (check)" —
+    // and those are two different glosses, so the bank's kind:gloss key
+    // cannot see they are the same card. Deduping the question is the only
+    // place this is cheap to fix: stripping parentheticals from the answer
+    // would merge "bank (river)" into "bank (money)".
+    const seen = new Set<string>();
+    const unique = captured.filter((c) => {
+      const k = `${c.languageCode}:${c.term.trim().toLowerCase()}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
     const res = await fetch(`${API_BASE}/api/sets`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({
-        expand: captured.slice(0, 30).map((c) => ({
+        expand: unique.slice(0, 30).map((c) => ({
           term: c.term,
           language_code: c.languageCode,
           meaning: c.meaning,
