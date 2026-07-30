@@ -180,7 +180,9 @@ export default function Check() {
                 {t.text}
               </Text>
             ))}
-            {busy ? <Text style={styles.thinking}>…</Text> : null}
+            {/* Only while there is still a turn coming. Saving the day
+                afterwards is not something to keep you waiting on. */}
+            {busy && stage === 'talking' ? <Text style={styles.thinking}>…</Text> : null}
           </ScrollView>
 
           {stage === 'talking' ? (
