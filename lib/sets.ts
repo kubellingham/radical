@@ -126,9 +126,10 @@ export async function generateBatch(
       signal: controller.signal,
     });
     if (!res.ok) return 0;
-    const body = (await res.json()) as { sets?: WireSet[] };
+    const body = (await res.json()) as { sets?: WireSet[]; kind?: 'word' | 'sentence' };
     if (!body.sets?.length) return 0;
-    const added = await addSets(body.sets.map(fromWire));
+    // Trust what we asked for; the envelope only ever echoes it back.
+    const added = await addSets(body.sets.map((w) => fromWire(w, body.kind ?? kind)));
     await pushSets(await loadSets());
     return added;
   } catch {
@@ -262,7 +263,8 @@ export async function expandCaptured(
     if (!res.ok) return 0;
     const body = (await res.json()) as { sets?: WireSet[] };
     if (!body.sets?.length) return 0;
-    const sets = body.sets.map((w) => ({ ...fromWire(w), origin: 'captured' as const }));
+    // A captured word expands into a word, never a sentence.
+    const sets = body.sets.map((w) => ({ ...fromWire(w, 'word'), origin: 'captured' as const }));
     const added = await addSets(sets);
     await pushSets(sets);
     return added;
@@ -273,17 +275,23 @@ export async function expandCaptured(
 
 interface WireSet {
   gloss: string;
-  kind?: 'word' | 'sentence';
   context_tag?: string;
   sino_root?: string;
   renderings: { language_code: string; term: string; reading: string; say?: string }[];
 }
 
-function fromWire(w: WireSet): LexemeSet {
+/**
+ * The kind comes from the response envelope, never from the entry. The
+ * generator's schema is `additionalProperties: false` and does not include
+ * kind, so an entry can't carry one — reading it off the entry silently
+ * filed every generated sentence as a word, which is why the sentence bank
+ * never grew past the bundled starters and Today kept rotating the same few.
+ */
+function fromWire(w: WireSet, kind: 'word' | 'sentence'): LexemeSet {
   return {
     id: newId(),
     gloss: (w.gloss ?? '').trim(),
-    kind: w.kind === 'sentence' ? 'sentence' : 'word',
+    kind,
     renderings: (w.renderings ?? [])
       .filter((r) => r.term?.trim())
       .map((r) => ({
