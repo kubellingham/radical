@@ -40,6 +40,8 @@ export function SetCard({ set }: { set: LexemeSet }) {
                   numberOfLines={long ? 3 : 1}>
                   {r.term}
                 </Text>
+                {/* How to say it comes first — it is what you need to speak. */}
+                {r.say ? <Text style={styles.say}>{r.say}</Text> : null}
                 {r.reading ? <Text style={styles.reading}>{r.reading}</Text> : null}
               </View>
             </View>
@@ -92,12 +94,18 @@ const styles = StyleSheet.create({
   },
   term: {
     color: colors.paper,
-    fontSize: 30,
+    fontSize: 27,
     fontWeight: '500',
   },
   termLong: {
-    fontSize: 20,
-    lineHeight: 27,
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  say: {
+    color: colors.paper,
+    fontSize: type.small,
+    opacity: 0.75,
+    marginTop: 2,
   },
   reading: {
     color: colors.slate,

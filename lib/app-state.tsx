@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 
 import { syncPacks } from './packs';
 import { flushOutbox, pullSessions } from './repo';
-import { backfillCaptured, pullSets, refillIfLow } from './sets';
+import { backfillCaptured, backfillPronunciations, pullSets, refillIfLow } from './sets';
 import { hasPendingPush, loadSetup, persistSetup, pullSetup, retryPendingPush } from './setup';
 import { seedStarterPacks } from './starter-packs';
 import { seedStarterSets } from './starter-sets';
@@ -146,6 +146,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // into it, then top up if it's still thin.
     pullSets()
       .then(() => backfillCaptured())
+      .then(() => backfillPronunciations())
       .then(() => refillIfLow('word'))
       .then(() => refillIfLow('sentence'))
       .catch(() => {});

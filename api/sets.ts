@@ -24,8 +24,9 @@ const SET_SCHEMA = {
                 language_code: { type: 'string', enum: [...LANGUAGES] },
                 term: { type: 'string' },
                 reading: { type: 'string' },
+                say: { type: 'string' },
               },
-              required: ['language_code', 'term', 'reading'],
+              required: ['language_code', 'term', 'reading', 'say'],
               additionalProperties: false,
             },
           },
@@ -47,6 +48,7 @@ Every entry is ONE meaning rendered in ALL FIVE languages. Never omit a language
 - renderings: exactly five, one per language_code (ja, ko, zh, es, ru).
   - term: the native script, always. Japanese in kanji/kana, Korean in Hangul, Chinese in simplified Hanzi, Spanish in Latin script, Russian in Cyrillic. Never romanization in this field.
   - reading: Japanese "kana · romaji", Korean Revised Romanization, Chinese pinyin with tone marks, Russian romanization with the stressed vowel marked. Empty string for Spanish.
+  - say: how an English speaker should actually pronounce it, respelled in English syllables joined by hyphens, lowercase — 감사합니다 becomes "gahm-sah-hahm-nee-dah", 谢谢 becomes "shyeh-shyeh", gracias becomes "grah-syahs", спасибо becomes "spah-see-bah". Required for EVERY language including Spanish. Use plain English spelling patterns only: no IPA, no tone numbers, no diacritics. For a sentence, keep the word boundaries as spaces and hyphenate within words.
 - sino_root: only when all three of the Japanese, Korean and Chinese words are BOTH the everyday way to say it AND descend from the same Classical Chinese root — then give that root in Chinese characters (e.g. 時間). Otherwise an empty string.
 - context_tag: one of café/class/transit/gym/home/street when the entry clearly belongs somewhere; otherwise an empty string.
 
@@ -101,6 +103,7 @@ export async function POST(request: Request): Promise<Response> {
     avoid?: string[];
     context?: string;
     expand?: { term?: string; language_code?: string; meaning?: string }[];
+    pronounce?: { gloss?: string; renderings?: { language_code: string; term: string }[] }[];
   };
   try {
     input = (await request.json()) as typeof input;
@@ -119,7 +122,21 @@ export async function POST(request: Request): Promise<Response> {
     ? input.expand.filter((e) => e.term?.trim()).slice(0, 30)
     : [];
 
-  const ask = expand.length
+  // Pronounce mode: fill in say-lines for sets that predate them, without
+  // regenerating (and re-paying for) the vocabulary itself.
+  const pronounce = Array.isArray(input.pronounce)
+    ? input.pronounce.filter((p) => p.gloss?.trim()).slice(0, 25)
+    : [];
+
+  const ask = pronounce.length
+    ? `These entries already exist and their wording must not change. Return them exactly as given, filling in the "say" field for every rendering and keeping "reading" as provided.\n\n${pronounce
+        .map(
+          (p) =>
+            `- ${p.gloss}: ` +
+            (p.renderings ?? []).map((r) => `${r.language_code}=${r.term}`).join('  ')
+        )
+        .join('\n')}`
+    : expand.length
     ? `Each line below is a word the learner captured in ONE language. For each, produce one entry whose gloss is its English meaning and whose renderings give the equivalent in all five languages. Keep the learner's original word as that language's rendering when it is already idiomatic.\n\n${expand
         .map((e) => `- ${e.term} (${e.language_code ?? '?'})${e.meaning ? ` = ${e.meaning}` : ''}`)
         .join('\n')}`
@@ -146,7 +163,7 @@ export async function POST(request: Request): Promise<Response> {
       const codes = new Set(r.map((x) => x.language_code));
       return LANGUAGES.every((l) => codes.has(l));
     });
-    return json({ sets, kind: expand.length ? 'word' : kind });
+    return json({ sets, kind: expand.length || pronounce.length ? 'word' : kind });
   } catch {
     return json({ error: 'generation failed' }, 502);
   }

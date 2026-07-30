@@ -64,6 +64,7 @@ export default function Today() {
                     <Text style={styles.glyph}>{lang?.glyph}</Text>
                     <View style={styles.lineText}>
                       <Text style={styles.term}>{r.term}</Text>
+                      {r.say ? <Text style={styles.say}>{r.say}</Text> : null}
                       {r.reading ? <Text style={styles.reading}>{r.reading}</Text> : null}
                     </View>
                   </View>
@@ -133,10 +134,16 @@ const styles = StyleSheet.create({
     fontSize: 21,
     lineHeight: 30,
   },
+  say: {
+    color: colors.paper,
+    fontSize: type.small,
+    opacity: 0.75,
+    marginTop: 4,
+  },
   reading: {
     color: colors.slate,
     fontSize: type.micro,
-    marginTop: 3,
+    marginTop: 2,
   },
   missionRow: {
     flexDirection: 'row',

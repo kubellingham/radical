@@ -139,6 +139,69 @@ export async function generateBatch(
 }
 
 const BACKFILL_KEY = 'sets.backfilled';
+const SAY_KEY = 'sets.pronounced';
+
+/**
+ * Sets built before say-lines existed have no pronunciation. Fill them in
+ * without regenerating the vocabulary itself — the words are already right,
+ * only the how-to-say-it line is missing. Runs a batch per launch until done.
+ */
+export async function backfillPronunciations(): Promise<number> {
+  if (!supabase) return 0;
+  try {
+    if (await localStore.get<boolean>(SAY_KEY)) return 0;
+    const sets = await loadSets();
+    const missing = sets.filter((s) => s.renderings.some((r) => !r.say));
+    if (missing.length === 0) {
+      await localStore.set(SAY_KEY, true);
+      return 0;
+    }
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return 0;
+
+    const batch = missing.slice(0, 25);
+    const res = await fetch(`${API_BASE}/api/sets`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        pronounce: batch.map((s) => ({
+          gloss: s.gloss,
+          renderings: s.renderings.map((r) => ({
+            language_code: r.languageCode,
+            term: r.term,
+          })),
+        })),
+      }),
+    });
+    if (!res.ok) return 0;
+    const body = (await res.json()) as { sets?: WireSet[] };
+    if (!body.sets?.length) return 0;
+
+    // Merge say-lines into the sets we already hold; never replace wording.
+    const byGloss = new Map(body.sets.map((w) => [w.gloss.trim().toLowerCase(), w]));
+    let filled = 0;
+    for (const set of batch) {
+      const w = byGloss.get(set.gloss.trim().toLowerCase());
+      if (!w) continue;
+      const sayFor = new Map(w.renderings.map((r) => [r.language_code, (r.say ?? '').trim()]));
+      const updated: LexemeSet = {
+        ...set,
+        renderings: set.renderings.map((r) => ({
+          ...r,
+          say: r.say || sayFor.get(r.languageCode) || '',
+        })),
+      };
+      await localStore.set(`${SET_PREFIX}${set.id}`, updated);
+      filled += 1;
+    }
+    if (filled > 0) await pushSets(await loadSets());
+    if (missing.length <= batch.length) await localStore.set(SAY_KEY, true);
+    return filled;
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * Words captured before sets existed would otherwise never appear again —
@@ -213,7 +276,7 @@ interface WireSet {
   kind?: 'word' | 'sentence';
   context_tag?: string;
   sino_root?: string;
-  renderings: { language_code: string; term: string; reading: string }[];
+  renderings: { language_code: string; term: string; reading: string; say?: string }[];
 }
 
 function fromWire(w: WireSet): LexemeSet {
@@ -227,6 +290,7 @@ function fromWire(w: WireSet): LexemeSet {
         languageCode: r.language_code as Rendering['languageCode'],
         term: r.term.trim(),
         reading: (r.reading ?? '').trim(),
+        say: (r.say ?? '').trim(),
       })),
     sinoRoot: w.sino_root?.trim() ? w.sino_root.trim() : null,
     contextTag: (w.context_tag?.trim() as ContextTag) || null,

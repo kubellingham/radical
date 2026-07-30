@@ -13,7 +13,7 @@ interface WireSet {
   gloss: string;
   sino_root?: string;
   contextTag?: string;
-  renderings: { language_code: string; term: string; reading: string }[];
+  renderings: { language_code: string; term: string; reading: string; say?: string }[];
 }
 
 function toSet(w: WireSet, kind: 'word' | 'sentence'): LexemeSet {
@@ -25,6 +25,7 @@ function toSet(w: WireSet, kind: 'word' | 'sentence'): LexemeSet {
       languageCode: r.language_code as Rendering['languageCode'],
       term: r.term,
       reading: r.reading,
+      say: r.say ?? '',
     })),
     sinoRoot: w.sino_root ?? null,
     contextTag: (w.contextTag as ContextTag) ?? null,

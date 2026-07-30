@@ -70,8 +70,13 @@ export interface Rendering {
   languageCode: LanguageCode;
   /** Always the native script. Never romanization. */
   term: string;
-  /** Kana, pinyin, or romanization. Empty for Spanish. */
+  /** Kana, pinyin, or standard romanization — how it is spelled. */
   reading: string;
+  /**
+   * How to actually say it, respelled in English syllables:
+   * gahm-sah-hahm-nee-dah. Present for every language, Spanish included.
+   */
+  say: string;
 }
 
 /**
