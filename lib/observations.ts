@@ -38,11 +38,19 @@ function daysBetween(from: string, to: string): number {
   );
 }
 
-function shift(day: string, days: number): string {
+/**
+ * The same calendar date, n years back. Not `day - 365 * n`: leap days make
+ * that drift a day or two out over five years, so the anniversary would
+ * quietly start landing on the wrong date — and a quotation attached to the
+ * wrong day is worse than no quotation. 29 February simply has no
+ * anniversary in a common year, which is correct.
+ */
+function yearsBack(day: string, years: number): string | null {
   const [y, m, d] = day.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  date.setDate(date.getDate() + days);
-  return localDay(date);
+  if (!y) return null;
+  const then = new Date(y - years, m - 1, d);
+  if (then.getMonth() !== m - 1 || then.getDate() !== d) return null;
+  return localDay(then);
 }
 
 /** Whitespace tokens, lowercased, stripped of surrounding punctuation. */
@@ -65,8 +73,8 @@ function plural(n: number, one: string, many: string): string {
 function anniversary(lines: DailyLine[], today: string): Observation | null {
   const byDate = new Map(lines.map((l) => [l.date, l]));
   for (let years = 5; years >= 1; years -= 1) {
-    const then = shift(today, -365 * years);
-    const line = byDate.get(then);
+    const then = yearsBack(today, years);
+    const line = then ? byDate.get(then) : undefined;
     if (line) {
       return {
         key: `anniversary.${years}`,

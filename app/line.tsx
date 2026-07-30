@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TextInput,
@@ -84,7 +84,11 @@ export default function Line() {
     setBusy(true);
     setNote(null);
     try {
-      const saved = await saveLine({ text: trimmed, languageCode: language, languages: setup.languages });
+      const saved = await saveLine({
+        text: trimmed,
+        languageCode: language,
+        languages: setup.languages,
+      });
       if (!saved) {
         setNote('Could not write — nothing was saved.');
         return;
@@ -113,86 +117,104 @@ export default function Line() {
     <Screen title="The line" edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          {editing ? (
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* The column is a list, not a scroll of every stratum: at 1,825 of
+            them a ScrollView mounts the lot on open, and 1,825 is the point.
+            The header is passed as an element rather than a component so the
+            composer keeps focus between keystrokes — an inline component
+            would be a new type on every render and remount the input. */}
+        <FlatList
+          data={past}
+          keyExtractor={(line: DailyLine) => line.date}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scroll}
+          initialNumToRender={20}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
             <>
-              <View style={styles.chips}>
-                {writable.map((code) => {
-                  const lang = languageByCode(code);
-                  const active = language === code;
-                  return (
-                    <Pressable
-                      key={code}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => setLanguage(code)}>
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                        {lang?.glyph}
+              {editing ? (
+                <>
+                  <View style={styles.chips}>
+                    {writable.map((code) => {
+                      const lang = languageByCode(code);
+                      const active = language === code;
+                      return (
+                        <Pressable
+                          key={code}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setLanguage(code)}
+                        >
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {lang?.glyph}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder={language ? shapeFor(seed, language) : ''}
+                    placeholderTextColor={colors.slate}
+                    value={text}
+                    onChangeText={setText}
+                    multiline
+                    autoCorrect={false}
+                  />
+
+                  {note ? <Text style={styles.quiet}>{note}</Text> : null}
+
+                  <View style={styles.actions}>
+                    <Pressable onPress={commit} disabled={busy} hitSlop={12}>
+                      <Text style={styles.commit}>
+                        {busy ? '…' : today ? 'Rewrite it' : 'Keep it'}
                       </Text>
                     </Pressable>
-                  );
-                })}
-              </View>
-
-              <TextInput
-                style={styles.input}
-                placeholder={language ? shapeFor(seed, language) : ''}
-                placeholderTextColor={colors.slate}
-                value={text}
-                onChangeText={setText}
-                multiline
-                autoCorrect={false}
-              />
-
-              {note ? <Text style={styles.quiet}>{note}</Text> : null}
-
-              <View style={styles.actions}>
-                <Pressable onPress={commit} disabled={busy} hitSlop={12}>
-                  <Text style={styles.commit}>{busy ? '…' : today ? 'Rewrite it' : 'Keep it'}</Text>
+                    {today ? (
+                      <Pressable
+                        onPress={() => {
+                          setText(today.text);
+                          setLanguage(today.languageCode);
+                          setEditing(false);
+                        }}
+                        hitSlop={12}
+                      >
+                        <Text style={styles.cancel}>Cancel</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </>
+              ) : today ? (
+                <Pressable onPress={() => setEditing(true)}>
+                  <Text style={styles.todayMeta}>
+                    Today · {languageByCode(today.languageCode)?.name}
+                  </Text>
+                  <Text style={styles.todayText}>{today.text}</Text>
                 </Pressable>
-                {today ? (
-                  <Pressable
-                    onPress={() => {
-                      setText(today.text);
-                      setLanguage(today.languageCode);
-                      setEditing(false);
-                    }}
-                    hitSlop={12}>
-                    <Text style={styles.cancel}>Cancel</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </>
-          ) : today ? (
-            <Pressable onPress={() => setEditing(true)}>
-              <Text style={styles.todayMeta}>
-                Today · {languageByCode(today.languageCode)?.name}
-              </Text>
-              <Text style={styles.todayText}>{today.text}</Text>
-            </Pressable>
-          ) : null}
+              ) : null}
 
-          <View style={styles.divider} />
+              <View style={styles.divider} />
 
-          {/* The report. One thing, only when it clears its threshold, and
+              {/* The report. One thing, only when it clears its threshold, and
               nothing at all the rest of the time. */}
-          {said ? <Text style={styles.said}>{said.text}</Text> : null}
-
-          {past.length === 0 ? (
+              {said ? <Text style={styles.said}>{said.text}</Text> : null}
+            </>
+          }
+          ListEmptyComponent={
             <Text style={styles.quiet}>
               Nothing behind this one yet. A line a day, and this is where they stack up.
             </Text>
-          ) : (
-            past.map((line) => (
-              <View key={line.date} style={styles.entry}>
-                <Text style={styles.entryMeta}>
-                  {formatDate(line.date)} · {languageByCode(line.languageCode)?.glyph}
-                </Text>
-                <Text style={styles.entryText}>{line.text}</Text>
-              </View>
-            ))
+          }
+          renderItem={({ item }: { item: DailyLine }) => (
+            <View style={styles.entry}>
+              <Text style={styles.entryMeta}>
+                {formatDate(item.date)} · {languageByCode(item.languageCode)?.glyph}
+              </Text>
+              <Text style={styles.entryText}>{item.text}</Text>
+            </View>
           )}
-        </ScrollView>
+        />
       </KeyboardAvoidingView>
     </Screen>
   );

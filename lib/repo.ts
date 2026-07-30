@@ -5,7 +5,15 @@ import * as Crypto from 'expo-crypto';
 import { localStore } from './local-store';
 import { loadSetup } from './setup';
 import { supabase } from './supabase';
-import type { DraftItem, Item, ItemState, LanguageCode, SessionEntry, SessionKind } from './types';
+import type {
+  DailyLine,
+  DraftItem,
+  Item,
+  ItemState,
+  LanguageCode,
+  SessionEntry,
+  SessionKind,
+} from './types';
 
 const SESSIONS_KEY = 'sessions.log';
 const OUTBOX_KEY = 'outbox.queue';
@@ -16,6 +24,17 @@ interface OutboxEntry {
   items: Item[];
   states: ItemState[];
   session: SessionEntry | null;
+  /**
+   * A day's line. Read with `?? null` because entries queued before lines
+   * existed have no such field.
+   */
+  line?: DailyLine | null;
+}
+
+/** Queue a day's line for Supabase. Drained by the same outbox as everything else. */
+export async function enqueueLine(line: DailyLine): Promise<{ synced: boolean }> {
+  await enqueue({ id: newId(), items: [], states: [], session: null, line });
+  return { synced: await flushOutbox() };
 }
 
 // crypto.randomUUID is missing on insecure web origins (plain-http dev
@@ -232,8 +251,12 @@ async function doFlush(): Promise<boolean> {
   const { data: auth } = await supabase.auth.getSession();
   if (!auth.session) return false;
 
-  const ids = await languageIds();
-  if (!ids) return false;
+  // Not a precondition for the whole queue. Only items — and sessions that
+  // name a language — need the code-to-uuid map; sessions without one and
+  // daily lines do not. Bailing here meant one failed languages fetch held
+  // back everything behind it, including writing that has no language id in
+  // it at all.
+  const ids = (await languageIds()) ?? {};
 
   const pushed = new Set<string>();
   for (const entry of queue) {
@@ -290,19 +313,37 @@ async function pushEntry(
     }
     if (entry.session) {
       const s = entry.session;
+      // A session that names a language waits for the map rather than
+      // syncing with the language quietly dropped.
+      if (s.languageCode && !ids[s.languageCode]) return false;
       const res = await supabase.from('sessions').upsert(
         [
           {
             id: s.id,
             date: s.date,
             kind: s.kind,
-            language_id: s.languageCode ? (ids[s.languageCode] ?? null) : null,
+            language_id: s.languageCode ? ids[s.languageCode] : null,
             minutes: s.minutes,
             note: s.note,
             created_at: s.createdAt,
           },
         ],
         { onConflict: 'id' }
+      );
+      if (res.error) return false;
+    }
+    if (entry.line) {
+      const l = entry.line;
+      const res = await supabase.from('daily_lines').upsert(
+        [
+          {
+            date: l.date,
+            language_code: l.languageCode,
+            text: l.text,
+            created_at: l.createdAt,
+          },
+        ],
+        { onConflict: 'user_id,date' }
       );
       if (res.error) return false;
     }

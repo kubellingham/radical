@@ -10,7 +10,7 @@
 // today's line overwrites it, and an anniversary is a lookup rather than a
 // scan.
 import { localStore } from './local-store';
-import { localDay } from './repo';
+import { enqueueLine, localDay } from './repo';
 import { supabase } from './supabase';
 import type { DailyLine, LanguageCode, LanguageConfig } from './types';
 
@@ -69,9 +69,13 @@ export async function suggestedLanguage(
 }
 
 /**
- * Write (or rewrite) a day's line. Local first and always: a line written
- * with no signal must survive, so the remote write is a convenience that is
- * allowed to fail silently.
+ * Write (or rewrite) today's line. Local first and always: a line written
+ * with no signal must survive, so it lands on disk before anything else is
+ * attempted.
+ *
+ * Only today. A past line is what you could write on that day, and the
+ * anniversary echo becomes a lie the moment old lines can be edited into
+ * something you could not have written then. Do not "fix" this.
  *
  * The script gate is enforced again here, independent of the screen above —
  * the same way saveDump re-checks it.
@@ -80,40 +84,24 @@ export async function saveLine(input: {
   text: string;
   languageCode: LanguageCode;
   languages: LanguageConfig[];
-  day?: string;
 }): Promise<DailyLine | null> {
   const text = input.text.trim();
   if (!text) return null;
   if (!writableLanguages(input.languages).includes(input.languageCode)) return null;
 
   const line: DailyLine = {
-    date: input.day ?? localDay(),
+    date: localDay(),
     languageCode: input.languageCode,
     text,
     createdAt: new Date().toISOString(),
   };
   await localStore.set(`${LINE_PREFIX}${line.date}`, line);
-  await pushLine(line);
+  // Through the outbox, not fire-and-forget. "Syncing is a convenience" is
+  // a fair thing to say about a bank a model can generate again; it is not a
+  // fair thing to say about a sentence written by hand once. A failed push
+  // has to be retried, not dropped.
+  await enqueueLine(line);
   return line;
-}
-
-async function pushLine(line: DailyLine): Promise<void> {
-  if (!supabase) return;
-  try {
-    await supabase.from('daily_lines').upsert(
-      [
-        {
-          date: line.date,
-          language_code: line.languageCode,
-          text: line.text,
-          created_at: line.createdAt,
-        },
-      ],
-      { onConflict: 'user_id,date' }
-    );
-  } catch {
-    // The line is local-first; syncing is a convenience.
-  }
 }
 
 /** Adopt the lines already in the account (fresh device). Local wins. */
