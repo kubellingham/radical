@@ -2,11 +2,22 @@
 // strength, an interval, or a due date — cards simply appear when they
 // should. Simplified SM-2: strength 0–5, intervals in days.
 import { localDay } from './repo';
-import type { ItemState } from './types';
 
 const INTERVALS = [1, 2, 4, 8, 16, 32];
 
 export type Grade = 'got' | 'again' | 'solid' | 'shaky' | 'missed';
+
+/**
+ * Everything the scheduler needs, and nothing about what is being
+ * scheduled — one curve serves both captured items and lexeme sets.
+ */
+export interface Schedulable {
+  strength: number;
+  lastSeen: string | null;
+  nextDue: string;
+  timesSeen: number;
+  timesMissed: number;
+}
 
 function addDays(day: string, days: number): string {
   const [y, m, d] = day.split('-').map(Number);
@@ -23,7 +34,7 @@ function intervalFor(strength: number): number {
  * Apply one grade to an item's state. Feed swipes are got/again; the
  * Phase-4 Check adds solid/shaky/missed.
  */
-export function grade(state: ItemState, result: Grade, today = localDay()): ItemState {
+export function grade<T extends Schedulable>(state: T, result: Grade, today = localDay()): T {
   const now = new Date().toISOString();
   let strength = state.strength;
   let days: number;
@@ -61,6 +72,6 @@ export function grade(state: ItemState, result: Grade, today = localDay()): Item
   };
 }
 
-export function isDue(state: ItemState, today = localDay()): boolean {
+export function isDue(state: Schedulable, today = localDay()): boolean {
   return state.nextDue <= today;
 }

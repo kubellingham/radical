@@ -6,135 +6,85 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/screen';
 import { colors, space, type } from '@/constants/theme';
 import { supabaseConfigured, useApp } from '@/lib/app-state';
-import { missionCounts } from '@/lib/deck';
-import { loadSessions, localDay } from '@/lib/repo';
-import type { LanguageConfig, RhythmSlot } from '@/lib/types';
+import { DEFAULT_LANGUAGES } from '@/lib/languages';
+import { dueSets, refillIfLow, sentenceOfTheDay } from '@/lib/sets';
+import type { LexemeSet } from '@/lib/types';
 
-interface Mission {
-  key: string;
-  glyph: string;
-  language: string;
-  task: string;
-  minutes: number;
-}
-
-// Rough, deliberately: the estimate exists to set expectations, not to be
-// audited. A card is about forty seconds once you know the deck.
+const ORDER = DEFAULT_LANGUAGES.map((l) => l.code);
 const MINUTES_PER_CARD = 0.7;
-const SCRIPT_MINUTES = 12;
-const CAPTURE_MINUTES = 3;
-
-function slotNow(): RhythmSlot {
-  const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 18) return 'afternoon';
-  return 'evening';
-}
 
 export default function Today() {
-  const { setup, pendingSync } = useApp();
-  const [missions, setMissions] = useState<Mission[] | null>(null);
-  const [capturedToday, setCapturedToday] = useState(false);
+  const { pendingSync } = useApp();
+  const [sentence, setSentence] = useState<LexemeSet | null>(null);
+  const [waiting, setWaiting] = useState(0);
+  const [loaded, setLoaded] = useState(false);
 
   const build = useCallback(() => {
     let cancelled = false;
-    const languages = setup.languages;
-    const unlocked = languages.filter((l) => l.scriptLearned).map((l) => l.code);
-
-    Promise.all([missionCounts(unlocked), loadSessions()]).then(([counts, sessions]) => {
+    Promise.all([sentenceOfTheDay(), dueSets('word', 'any')]).then(([s, words]) => {
       if (cancelled) return;
-      const { perLanguage: due, shared } = counts;
-      const today = localDay();
-      const captured = sessions.some((s) => s.date === today && s.kind === 'dump');
-      setCapturedToday(captured);
-
-      const slot = slotNow();
-      const ranked = [...languages].sort((a, b) => rank(a, slot) - rank(b, slot));
-
-      const list: Mission[] = [];
-      // One card, three languages — the shared roots earn their own line.
-      if (shared > 0) {
-        list.push({
-          key: 'shared',
-          glyph: '字',
-          language: 'Shared roots',
-          task: `Review ${shared} ${shared === 1 ? 'card' : 'cards'}`,
-          minutes: Math.max(1, Math.round(shared * MINUTES_PER_CARD)),
-        });
-      }
-      for (const lang of ranked) {
-        if (list.length >= 3) break;
-        if (!lang.scriptLearned) {
-          list.push({
-            key: lang.code,
-            glyph: lang.glyph,
-            language: lang.name,
-            task: `Learn ${lang.script}`,
-            minutes: SCRIPT_MINUTES,
-          });
-          continue;
-        }
-        const n = due.get(lang.code) ?? 0;
-        if (n > 0) {
-          list.push({
-            key: lang.code,
-            glyph: lang.glyph,
-            language: lang.name,
-            task: `Review ${n} ${n === 1 ? 'card' : 'cards'}`,
-            minutes: Math.max(1, Math.round(n * MINUTES_PER_CARD)),
-          });
-        }
-      }
-
-      if (list.length === 0 && !captured) {
-        const first = ranked[0];
-        list.push({
-          key: 'capture',
-          glyph: first?.glyph ?? '·',
-          language: first?.name ?? 'Anything',
-          task: 'Capture something you learned',
-          minutes: CAPTURE_MINUTES,
-        });
-      }
-      setMissions(list);
+      setSentence(s);
+      setWaiting(words.length);
+      setLoaded(true);
     });
-
+    refillIfLow('word');
+    refillIfLow('sentence');
     return () => {
       cancelled = true;
     };
-  }, [setup.languages]);
+  }, []);
 
   useFocusEffect(build);
 
-  const total = (missions ?? []).reduce((sum, m) => sum + m.minutes, 0);
+  const rows = sentence
+    ? ORDER.map((code) => sentence.renderings.find((r) => r.languageCode === code)).filter(
+        (r): r is NonNullable<typeof r> => r !== undefined
+      )
+    : [];
+
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 
   return (
-    <Screen title="Today's Mission">
+    <Screen title="Today">
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {missions === null ? null : missions.length === 0 ? (
-          <Text style={styles.done}>
-            {capturedToday
-              ? 'Done for today. Anything else you pick up is a bonus.'
-              : 'Nothing waiting. Capture what you learn out there and it turns up here.'}
-          </Text>
-        ) : (
+        <Text style={styles.date}>{today}</Text>
+
+        {sentence ? (
           <>
-            {missions.map((m) => (
-              <View key={m.key} style={styles.row}>
-                <Text style={styles.glyph}>{m.glyph}</Text>
-                <View style={styles.rowText}>
-                  <Text style={styles.language}>{m.language}</Text>
-                  <Text style={styles.task}>{m.task}</Text>
-                </View>
-                <Text style={styles.minutes}>{m.minutes} min</Text>
-              </View>
-            ))}
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Estimated time</Text>
-              <Text style={styles.totalValue}>{total} minutes</Text>
+            <Text style={styles.gloss}>{sentence.gloss}</Text>
+            <View style={styles.sentence}>
+              {rows.map((r) => {
+                const lang = DEFAULT_LANGUAGES.find((l) => l.code === r.languageCode);
+                return (
+                  <View key={r.languageCode} style={styles.line}>
+                    <Text style={styles.glyph}>{lang?.glyph}</Text>
+                    <View style={styles.lineText}>
+                      <Text style={styles.term}>{r.term}</Text>
+                      {r.reading ? <Text style={styles.reading}>{r.reading}</Text> : null}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           </>
-        )}
+        ) : loaded ? (
+          <Text style={styles.gloss}>Today&apos;s sentence is on its way.</Text>
+        ) : null}
+
+        {waiting > 0 ? (
+          <View style={styles.missionRow}>
+            <Text style={styles.missionLabel}>
+              {waiting} {waiting === 1 ? 'card' : 'cards'} waiting in the Feed
+            </Text>
+            <Text style={styles.missionValue}>
+              {Math.max(1, Math.round(waiting * MINUTES_PER_CARD))} min
+            </Text>
+          </View>
+        ) : null}
 
         {pendingSync && supabaseConfigured ? (
           <Text style={styles.quiet}>Saved on this device. Syncs when signed in.</Text>
@@ -148,61 +98,58 @@ export default function Today() {
   );
 }
 
-// Languages assigned to the current slot come first; script work outranks
-// review, since a script you can't read blocks everything downstream.
-function rank(lang: LanguageConfig, slot: RhythmSlot): number {
-  const slotScore = lang.rhythmSlot === slot ? 0 : lang.rhythmSlot === 'any' ? 1 : 2;
-  const stageScore = lang.scriptLearned ? 1 : 0;
-  return slotScore * 10 + stageScore * 5 + lang.sortOrder * 0.1;
-}
-
 const styles = StyleSheet.create({
   scroll: { paddingBottom: space.xl },
-  row: {
+  date: {
+    color: colors.slate,
+    fontSize: type.small,
+    marginBottom: space.lg,
+  },
+  gloss: {
+    color: colors.slate,
+    fontSize: type.small,
+    marginBottom: space.md,
+  },
+  sentence: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.rule,
+  },
+  line: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.rule,
   },
   glyph: {
-    color: colors.paper,
-    fontSize: type.glyph,
-    width: 56,
-  },
-  rowText: { flex: 1 },
-  language: {
-    color: colors.paper,
-    fontSize: type.body,
-    fontWeight: '600',
-  },
-  task: {
     color: colors.slate,
-    fontSize: type.small,
+    fontSize: type.body,
+    width: 32,
     marginTop: 2,
   },
-  minutes: {
-    color: colors.slate,
-    fontSize: type.small,
+  lineText: { flex: 1 },
+  term: {
+    color: colors.paper,
+    fontSize: 21,
+    lineHeight: 30,
   },
-  totalRow: {
+  reading: {
+    color: colors.slate,
+    fontSize: type.micro,
+    marginTop: 3,
+  },
+  missionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: space.lg,
   },
-  totalLabel: {
+  missionLabel: {
     color: colors.slate,
     fontSize: type.small,
   },
-  totalValue: {
+  missionValue: {
     color: colors.paper,
     fontSize: type.small,
-  },
-  done: {
-    color: colors.paper,
-    fontSize: type.body,
-    lineHeight: type.body * 1.6,
-    marginTop: space.md,
   },
   quiet: {
     color: colors.slate,

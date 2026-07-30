@@ -108,6 +108,23 @@ export async function saveDump(input: {
   await appendSession(session);
   await enqueue({ id: newId(), items, states, session });
   const synced = await flushOutbox();
+
+  // Bring what you captured back as full sets — all five languages — so it
+  // joins the Feed rather than sitting in a single-language corner. Behind
+  // the save; nothing waits on it.
+  if (items.length > 0) {
+    import('./sets')
+      .then((m) =>
+        m.expandCaptured(
+          items.map((i) => ({
+            term: i.term,
+            languageCode: i.languageCode,
+            meaning: i.meaning,
+          }))
+        )
+      )
+      .catch(() => {});
+  }
   return { itemCount: items.length, synced };
 }
 

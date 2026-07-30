@@ -1,0 +1,203 @@
+{
+  "note": "Bundled bank. One meaning per entry, all five languages. Reviewed by hand; the generator produces the same shape at runtime.",
+  "words": [
+    { "gloss": "water", "renderings": [
+      { "language_code": "ja", "term": "水", "reading": "みず · mizu" },
+      { "language_code": "ko", "term": "물", "reading": "mul" },
+      { "language_code": "zh", "term": "水", "reading": "shuǐ" },
+      { "language_code": "es", "term": "agua", "reading": "" },
+      { "language_code": "ru", "term": "вода", "reading": "vodá" }
+    ]},
+    { "gloss": "thank you", "renderings": [
+      { "language_code": "ja", "term": "ありがとう", "reading": "arigatō" },
+      { "language_code": "ko", "term": "감사합니다", "reading": "gamsahamnida" },
+      { "language_code": "zh", "term": "谢谢", "reading": "xièxie" },
+      { "language_code": "es", "term": "gracias", "reading": "" },
+      { "language_code": "ru", "term": "спасибо", "reading": "spasíbo" }
+    ]},
+    { "gloss": "friend", "renderings": [
+      { "language_code": "ja", "term": "友達", "reading": "ともだち · tomodachi" },
+      { "language_code": "ko", "term": "친구", "reading": "chingu" },
+      { "language_code": "zh", "term": "朋友", "reading": "péngyou" },
+      { "language_code": "es", "term": "amigo", "reading": "" },
+      { "language_code": "ru", "term": "друг", "reading": "drug" }
+    ]},
+    { "gloss": "book", "renderings": [
+      { "language_code": "ja", "term": "本", "reading": "ほん · hon" },
+      { "language_code": "ko", "term": "책", "reading": "chaek" },
+      { "language_code": "zh", "term": "书", "reading": "shū" },
+      { "language_code": "es", "term": "libro", "reading": "" },
+      { "language_code": "ru", "term": "книга", "reading": "kníga" }
+    ]},
+    { "gloss": "house", "renderings": [
+      { "language_code": "ja", "term": "家", "reading": "いえ · ie" },
+      { "language_code": "ko", "term": "집", "reading": "jip" },
+      { "language_code": "zh", "term": "家", "reading": "jiā" },
+      { "language_code": "es", "term": "casa", "reading": "" },
+      { "language_code": "ru", "term": "дом", "reading": "dom" }
+    ]},
+    { "gloss": "food", "renderings": [
+      { "language_code": "ja", "term": "食べ物", "reading": "たべもの · tabemono" },
+      { "language_code": "ko", "term": "음식", "reading": "eumsik" },
+      { "language_code": "zh", "term": "食物", "reading": "shíwù" },
+      { "language_code": "es", "term": "comida", "reading": "" },
+      { "language_code": "ru", "term": "еда", "reading": "yedá" }
+    ]},
+    { "gloss": "tomorrow", "renderings": [
+      { "language_code": "ja", "term": "明日", "reading": "あした · ashita" },
+      { "language_code": "ko", "term": "내일", "reading": "naeil" },
+      { "language_code": "zh", "term": "明天", "reading": "míngtiān" },
+      { "language_code": "es", "term": "mañana", "reading": "" },
+      { "language_code": "ru", "term": "завтра", "reading": "závtra" }
+    ]},
+    { "gloss": "money", "renderings": [
+      { "language_code": "ja", "term": "お金", "reading": "おかね · okane" },
+      { "language_code": "ko", "term": "돈", "reading": "don" },
+      { "language_code": "zh", "term": "钱", "reading": "qián" },
+      { "language_code": "es", "term": "dinero", "reading": "" },
+      { "language_code": "ru", "term": "деньги", "reading": "dén'gi" }
+    ]},
+    { "gloss": "time", "sino_root": "時間", "renderings": [
+      { "language_code": "ja", "term": "時間", "reading": "じかん · jikan" },
+      { "language_code": "ko", "term": "시간", "reading": "sigan" },
+      { "language_code": "zh", "term": "时间", "reading": "shíjiān" },
+      { "language_code": "es", "term": "tiempo", "reading": "" },
+      { "language_code": "ru", "term": "время", "reading": "vrémya" }
+    ]},
+    { "gloss": "school", "sino_root": "学校", "renderings": [
+      { "language_code": "ja", "term": "学校", "reading": "がっこう · gakkō" },
+      { "language_code": "ko", "term": "학교", "reading": "hakgyo" },
+      { "language_code": "zh", "term": "学校", "reading": "xuéxiào" },
+      { "language_code": "es", "term": "escuela", "reading": "" },
+      { "language_code": "ru", "term": "школа", "reading": "shkóla" }
+    ]},
+    { "gloss": "name", "renderings": [
+      { "language_code": "ja", "term": "名前", "reading": "なまえ · namae" },
+      { "language_code": "ko", "term": "이름", "reading": "ireum" },
+      { "language_code": "zh", "term": "名字", "reading": "míngzi" },
+      { "language_code": "es", "term": "nombre", "reading": "" },
+      { "language_code": "ru", "term": "имя", "reading": "ímya" }
+    ]},
+    { "gloss": "city", "renderings": [
+      { "language_code": "ja", "term": "町", "reading": "まち · machi" },
+      { "language_code": "ko", "term": "도시", "reading": "dosi" },
+      { "language_code": "zh", "term": "城市", "reading": "chéngshì" },
+      { "language_code": "es", "term": "ciudad", "reading": "" },
+      { "language_code": "ru", "term": "город", "reading": "górod" }
+    ]},
+    { "gloss": "love", "renderings": [
+      { "language_code": "ja", "term": "愛", "reading": "あい · ai" },
+      { "language_code": "ko", "term": "사랑", "reading": "sarang" },
+      { "language_code": "zh", "term": "爱", "reading": "ài" },
+      { "language_code": "es", "term": "amor", "reading": "" },
+      { "language_code": "ru", "term": "любовь", "reading": "lyubóv'" }
+    ]},
+    { "gloss": "work", "renderings": [
+      { "language_code": "ja", "term": "仕事", "reading": "しごと · shigoto" },
+      { "language_code": "ko", "term": "일", "reading": "il" },
+      { "language_code": "zh", "term": "工作", "reading": "gōngzuò" },
+      { "language_code": "es", "term": "trabajo", "reading": "" },
+      { "language_code": "ru", "term": "работа", "reading": "rabóta" }
+    ]},
+    { "gloss": "now", "renderings": [
+      { "language_code": "ja", "term": "今", "reading": "いま · ima" },
+      { "language_code": "ko", "term": "지금", "reading": "jigeum" },
+      { "language_code": "zh", "term": "现在", "reading": "xiànzài" },
+      { "language_code": "es", "term": "ahora", "reading": "" },
+      { "language_code": "ru", "term": "сейчас", "reading": "seychás" }
+    ]},
+    { "gloss": "good", "renderings": [
+      { "language_code": "ja", "term": "いい", "reading": "ii" },
+      { "language_code": "ko", "term": "좋다", "reading": "jota" },
+      { "language_code": "zh", "term": "好", "reading": "hǎo" },
+      { "language_code": "es", "term": "bueno", "reading": "" },
+      { "language_code": "ru", "term": "хороший", "reading": "khoróshiy" }
+    ]},
+    { "gloss": "big", "renderings": [
+      { "language_code": "ja", "term": "大きい", "reading": "おおきい · ōkii" },
+      { "language_code": "ko", "term": "크다", "reading": "keuda" },
+      { "language_code": "zh", "term": "大", "reading": "dà" },
+      { "language_code": "es", "term": "grande", "reading": "" },
+      { "language_code": "ru", "term": "большой", "reading": "bol'shóy" }
+    ]},
+    { "gloss": "coffee", "contextTag": "café", "renderings": [
+      { "language_code": "ja", "term": "コーヒー", "reading": "kōhī" },
+      { "language_code": "ko", "term": "커피", "reading": "keopi" },
+      { "language_code": "zh", "term": "咖啡", "reading": "kāfēi" },
+      { "language_code": "es", "term": "café", "reading": "" },
+      { "language_code": "ru", "term": "кофе", "reading": "kófe" }
+    ]},
+    { "gloss": "train", "contextTag": "transit", "renderings": [
+      { "language_code": "ja", "term": "電車", "reading": "でんしゃ · densha" },
+      { "language_code": "ko", "term": "기차", "reading": "gicha" },
+      { "language_code": "zh", "term": "火车", "reading": "huǒchē" },
+      { "language_code": "es", "term": "tren", "reading": "" },
+      { "language_code": "ru", "term": "поезд", "reading": "póyezd" }
+    ]},
+    { "gloss": "today", "renderings": [
+      { "language_code": "ja", "term": "今日", "reading": "きょう · kyō" },
+      { "language_code": "ko", "term": "오늘", "reading": "oneul" },
+      { "language_code": "zh", "term": "今天", "reading": "jīntiān" },
+      { "language_code": "es", "term": "hoy", "reading": "" },
+      { "language_code": "ru", "term": "сегодня", "reading": "sevódnya" }
+    ]}
+  ],
+  "sentences": [
+    { "gloss": "Hello, how are you?", "renderings": [
+      { "language_code": "ja", "term": "こんにちは、お元気ですか。", "reading": "konnichiwa, o-genki desu ka" },
+      { "language_code": "ko", "term": "안녕하세요, 잘 지내세요?", "reading": "annyeonghaseyo, jal jinaeseyo" },
+      { "language_code": "zh", "term": "你好，你好吗？", "reading": "nǐ hǎo, nǐ hǎo ma" },
+      { "language_code": "es", "term": "Hola, ¿cómo estás?", "reading": "" },
+      { "language_code": "ru", "term": "Здравствуйте, как дела?", "reading": "zdrávstvuyte, kak delá" }
+    ]},
+    { "gloss": "Thank you very much.", "renderings": [
+      { "language_code": "ja", "term": "どうもありがとうございます。", "reading": "dōmo arigatō gozaimasu" },
+      { "language_code": "ko", "term": "정말 감사합니다.", "reading": "jeongmal gamsahamnida" },
+      { "language_code": "zh", "term": "非常感谢。", "reading": "fēicháng gǎnxiè" },
+      { "language_code": "es", "term": "Muchas gracias.", "reading": "" },
+      { "language_code": "ru", "term": "Большое спасибо.", "reading": "bol'shóye spasíbo" }
+    ]},
+    { "gloss": "I don't understand.", "renderings": [
+      { "language_code": "ja", "term": "わかりません。", "reading": "wakarimasen" },
+      { "language_code": "ko", "term": "잘 모르겠어요.", "reading": "jal moreugesseoyo" },
+      { "language_code": "zh", "term": "我不明白。", "reading": "wǒ bù míngbai" },
+      { "language_code": "es", "term": "No entiendo.", "reading": "" },
+      { "language_code": "ru", "term": "Я не понимаю.", "reading": "ya ne ponimáyu" }
+    ]},
+    { "gloss": "Where is the station?", "contextTag": "transit", "renderings": [
+      { "language_code": "ja", "term": "駅はどこですか。", "reading": "eki wa doko desu ka" },
+      { "language_code": "ko", "term": "역이 어디예요?", "reading": "yeogi eodiyeyo" },
+      { "language_code": "zh", "term": "车站在哪里？", "reading": "chēzhàn zài nǎlǐ" },
+      { "language_code": "es", "term": "¿Dónde está la estación?", "reading": "" },
+      { "language_code": "ru", "term": "Где вокзал?", "reading": "gde vokzál" }
+    ]},
+    { "gloss": "How much is this?", "renderings": [
+      { "language_code": "ja", "term": "これはいくらですか。", "reading": "kore wa ikura desu ka" },
+      { "language_code": "ko", "term": "이거 얼마예요?", "reading": "igeo eolmayeyo" },
+      { "language_code": "zh", "term": "这个多少钱？", "reading": "zhège duōshao qián" },
+      { "language_code": "es", "term": "¿Cuánto cuesta esto?", "reading": "" },
+      { "language_code": "ru", "term": "Сколько это стоит?", "reading": "skól'ko éto stóit" }
+    ]},
+    { "gloss": "A coffee, please.", "contextTag": "café", "renderings": [
+      { "language_code": "ja", "term": "コーヒーをお願いします。", "reading": "kōhī o onegai shimasu" },
+      { "language_code": "ko", "term": "커피 주세요.", "reading": "keopi juseyo" },
+      { "language_code": "zh", "term": "我要一杯咖啡。", "reading": "wǒ yào yī bēi kāfēi" },
+      { "language_code": "es", "term": "Un café, por favor.", "reading": "" },
+      { "language_code": "ru", "term": "Кофе, пожалуйста.", "reading": "kófe, pozháluysta" }
+    ]},
+    { "gloss": "What is your name?", "renderings": [
+      { "language_code": "ja", "term": "お名前は何ですか。", "reading": "o-namae wa nan desu ka" },
+      { "language_code": "ko", "term": "이름이 뭐예요?", "reading": "ireumi mwoyeyo" },
+      { "language_code": "zh", "term": "你叫什么名字？", "reading": "nǐ jiào shénme míngzi" },
+      { "language_code": "es", "term": "¿Cómo te llamas?", "reading": "" },
+      { "language_code": "ru", "term": "Как вас зовут?", "reading": "kak vas zovút" }
+    ]},
+    { "gloss": "See you tomorrow.", "renderings": [
+      { "language_code": "ja", "term": "また明日。", "reading": "mata ashita" },
+      { "language_code": "ko", "term": "내일 봐요.", "reading": "naeil bwayo" },
+      { "language_code": "zh", "term": "明天见。", "reading": "míngtiān jiàn" },
+      { "language_code": "es", "term": "Hasta mañana.", "reading": "" },
+      { "language_code": "ru", "term": "До завтра.", "reading": "do závtra" }
+    ]}
+  ]
+}

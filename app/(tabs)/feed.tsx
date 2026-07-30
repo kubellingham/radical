@@ -11,14 +11,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { CardFace } from '@/components/cards';
 import { Screen } from '@/components/screen';
+import { SetCard } from '@/components/set-card';
 import { colors, space, type } from '@/constants/theme';
-import { useApp } from '@/lib/app-state';
-import { buildDeck, type Card } from '@/lib/deck';
-import { loadItemStates, logSession, saveItemState } from '@/lib/repo';
+import { logSession } from '@/lib/repo';
 import { grade } from '@/lib/scheduler';
-import type { ContextTag } from '@/lib/types';
+import { dueSets, loadSetStates, refillIfLow, saveSetState } from '@/lib/sets';
+import type { ContextTag, LexemeSet } from '@/lib/types';
 
 const CONTEXTS: (ContextTag | 'any')[] = [
   'any',
@@ -32,11 +31,8 @@ const CONTEXTS: (ContextTag | 'any')[] = [
 
 export default function Feed() {
   const { width } = useWindowDimensions();
-  const { setup } = useApp();
-  const unlocked = setup.languages.filter((l) => l.scriptLearned).map((l) => l.code);
-
   const [context, setContext] = useState<ContextTag | 'any'>('any');
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<LexemeSet[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const startedAt = useRef<number | null>(null);
@@ -48,24 +44,32 @@ export default function Feed() {
   const load = useCallback(() => {
     let cancelled = false;
     setLoading(true);
-    buildDeck({ unlocked, context })
-      .then((deck) => {
+    dueSets('word', context)
+      .then((sets) => {
         if (cancelled) return;
-        setCards(deck.cards);
+        setCards(sets);
         setIndex(0);
         x.value = 0;
         y.value = 0;
-        startedAt.current = deck.cards.length > 0 ? Date.now() : null;
+        startedAt.current = sets.length > 0 ? Date.now() : null;
         reviewed.current = 0;
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    // Top the bank up behind the deck you're already holding.
+    refillIfLow('word').then((added) => {
+      if (added > 0 && !cancelled) {
+        dueSets('word', context).then((sets) => {
+          if (!cancelled) setCards((prev) => (prev.length === 0 ? sets : prev));
+        });
+      }
+    });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, setup.languages]);
+  }, [context]);
 
   useFocusEffect(load);
 
@@ -77,18 +81,13 @@ export default function Feed() {
     await logSession({ kind: 'feed', minutes, note: '', languageCode: null });
   }, []);
 
-  const commit = useCallback(
-    async (card: Card, got: boolean) => {
-      reviewed.current += 1;
-      const states = await loadItemStates();
-      for (const id of card.itemIds) {
-        const state = states.find((s) => s.itemId === id);
-        if (!state) continue;
-        await saveItemState(grade(state, got ? 'got' : 'again'));
-      }
-    },
-    []
-  );
+  const commit = useCallback(async (set: LexemeSet, got: boolean) => {
+    reviewed.current += 1;
+    const states = await loadSetStates();
+    const state = states.find((s) => s.setId === set.id);
+    if (!state) return;
+    await saveSetState(grade(state, got ? 'got' : 'again'));
+  }, []);
 
   const advance = useCallback(
     (got: boolean) => {
@@ -98,7 +97,10 @@ export default function Feed() {
       y.value = 0;
       setIndex((i) => {
         const next = i + 1;
-        if (next >= cards.length) finish();
+        if (next >= cards.length) {
+          finish();
+          refillIfLow('word');
+        }
         return next;
       });
     },
@@ -169,12 +171,12 @@ export default function Feed() {
           <View style={styles.stack}>
             {next ? (
               <Animated.View style={[styles.layer, nextStyle]} pointerEvents="none">
-                <CardFace card={next} />
+                <SetCard set={next} />
               </Animated.View>
             ) : null}
             <GestureDetector gesture={pan}>
               <Animated.View style={[styles.layer, topStyle]}>
-                <CardFace card={card} />
+                <SetCard set={card} />
               </Animated.View>
             </GestureDetector>
           </View>
@@ -191,13 +193,9 @@ export default function Feed() {
       ) : (
         <View style={styles.empty}>
           <Text style={styles.emptyLine}>
-            {unlocked.length === 0
-              ? 'No language has its script marked learned yet. Start there — Today has the switch.'
-              : cards.length > 0
-                ? 'Deck done. Come back later, or capture something new in Found.'
-                : context === 'any'
-                  ? 'Nothing waiting. Capture what you learn in Found and it turns up here.'
-                  : `Nothing for ${context}. Try another context, or any.`}
+            {context === 'any'
+              ? 'Nothing waiting. More is on its way — come back in a moment.'
+              : `Nothing for ${context}. Try another context, or any.`}
           </Text>
         </View>
       )}

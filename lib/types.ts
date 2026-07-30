@@ -65,6 +65,41 @@ export interface ItemState {
   timesMissed: number;
 }
 
+/** One language's rendering of a meaning. */
+export interface Rendering {
+  languageCode: LanguageCode;
+  /** Always the native script. Never romanization. */
+  term: string;
+  /** Kana, pinyin, or romanization. Empty for Spanish. */
+  reading: string;
+}
+
+/**
+ * The atom of the app: one meaning, every language at once. A card is a set,
+ * not a word — you never see a language on its own.
+ */
+export interface LexemeSet {
+  id: string;
+  /** The English meaning, and the natural key for de-duplication. */
+  gloss: string;
+  kind: 'word' | 'sentence';
+  renderings: Rendering[];
+  /** Present when ja/ko/zh share a Classical Chinese root. */
+  sinoRoot: string | null;
+  contextTag: ContextTag | null;
+  origin: 'starter' | 'generated' | 'captured';
+  createdAt: string;
+}
+
+export interface SetState {
+  setId: string;
+  strength: number;
+  lastSeen: string | null;
+  nextDue: string;
+  timesSeen: number;
+  timesMissed: number;
+}
+
 export type SessionKind = 'dump' | 'feed' | 'check' | 'external';
 
 export interface SessionEntry {

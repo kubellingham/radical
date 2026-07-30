@@ -3,8 +3,10 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 
 import { syncPacks } from './packs';
 import { flushOutbox, pullSessions } from './repo';
+import { pullSets, refillIfLow } from './sets';
 import { hasPendingPush, loadSetup, persistSetup, pullSetup, retryPendingPush } from './setup';
 import { seedStarterPacks } from './starter-packs';
+import { seedStarterSets } from './starter-sets';
 import { supabase, supabaseConfigured } from './supabase';
 import type { LanguageCode, SetupState } from './types';
 
@@ -64,7 +66,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
 
     // Everything below is off the critical path.
-    seedStarterPacks().catch(() => {});
+    seedStarterSets()
+      .then(() => seedStarterPacks())
+      .catch(() => {});
 
     if (supabase) {
       // getSession refreshes an expired token over the network, which can
@@ -138,6 +142,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     flushOutbox().catch(() => {});
     pullSessions().catch(() => {});
     syncPacks(languageKey ? (languageKey.split(',') as LanguageCode[]) : []).catch(() => {});
+    // Adopt the account's bank, then top it up if it's still thin.
+    pullSets()
+      .then(() => refillIfLow('word'))
+      .then(() => refillIfLow('sentence'))
+      .catch(() => {});
   }, [ready, session, completed, languageKey]);
 
   const completeSetup = useCallback((state: SetupState, synced: boolean) => {
