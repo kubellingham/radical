@@ -82,8 +82,13 @@ async function pushSetup(languages: LanguageConfig[]): Promise<boolean> {
 
     // The rhythm table mirrors the per-language slots as slot → language ids,
     // which is the shape the Today screen will read in Phase 4.
-    const langRows = await supabase.from('languages').select('id, rhythm_slot');
+    const langRows = await supabase.from('languages').select('id, code, rhythm_slot');
     if (langRows.error || !langRows.data) return false;
+    // Cache code → id so items and sessions can reference languages offline.
+    await localStore.set(
+      'languages.ids',
+      Object.fromEntries(langRows.data.map((r) => [r.code, r.id]))
+    );
     const slots: RhythmSlot[] = ['morning', 'afternoon', 'evening', 'any'];
     const rhythmRows = slots.map((slot) => ({
       slot,
@@ -106,10 +111,14 @@ export async function pullSetup(): Promise<SetupState | null> {
   try {
     const { data, error } = await supabase
       .from('languages')
-      .select('code, name, script, status, script_learned, rhythm_slot, sort_order, created_at')
+      .select('id, code, name, script, status, script_learned, rhythm_slot, sort_order, created_at')
       .order('sort_order');
     if (error || !data || data.length === 0) return null;
 
+    await localStore.set(
+      'languages.ids',
+      Object.fromEntries(data.map((r) => [r.code, r.id]))
+    );
     const languages: LanguageConfig[] = data.map((row) => ({
       code: row.code,
       name: row.name,

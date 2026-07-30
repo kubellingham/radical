@@ -1,18 +1,370 @@
-import React from 'react';
+import React, { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Screen } from '@/components/screen';
-import { Stub } from '@/components/stub';
+import { colors, space, type } from '@/constants/theme';
+import { supabaseConfigured } from '@/lib/app-state';
+import { parseDump } from '@/lib/dump';
+import { DEFAULT_LANGUAGES } from '@/lib/languages';
+import { saveDump } from '@/lib/repo';
+import type { ContextTag, DraftItem } from '@/lib/types';
+
+const CONTEXTS: ContextTag[] = ['café', 'class', 'transit', 'gym', 'home', 'street'];
+
+const EMPTY_DRAFT: DraftItem = {
+  languageCode: 'ja',
+  term: '',
+  reading: '',
+  meaning: '',
+  example: '',
+  exampleMeaning: '',
+  contextTag: '',
+  sinoRoot: '',
+};
 
 export default function Dump() {
+  const [phase, setPhase] = useState<'compose' | 'confirm'>('compose');
+  const [text, setText] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [note, setNote] = useState('');
+  const [drafts, setDrafts] = useState<DraftItem[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [line, setLine] = useState<string | null>(null);
+
+  async function parse() {
+    if (busy || text.trim().length === 0) return;
+    setBusy(true);
+    setLine(null);
+    try {
+      const result = await parseDump(text.trim());
+      setDrafts(result.items.length > 0 ? result.items : [{ ...EMPTY_DRAFT, term: text.trim() }]);
+      if (!result.remote) setLine('Parsed locally — the AI parser was unreachable.');
+      setPhase('confirm');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    if (busy) return;
+    const valid = drafts.filter((d) => d.term.trim().length > 0);
+    if (valid.length === 0) return;
+    setBusy(true);
+    try {
+      const { itemCount, synced } = await saveDump({
+        drafts: valid,
+        minutes: Math.max(0, parseInt(minutes, 10) || 0),
+        note: note.trim(),
+      });
+      setText('');
+      setMinutes('');
+      setNote('');
+      setDrafts([]);
+      setPhase('compose');
+      setLine(
+        synced || !supabaseConfigured
+          ? `Filed. ${itemCount} ${itemCount === 1 ? 'item' : 'items'}.`
+          : `Filed locally. ${itemCount} ${itemCount === 1 ? 'item' : 'items'} — syncs when reachable.`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function patch(index: number, changes: Partial<DraftItem>) {
+    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...changes } : d)));
+  }
+
   return (
     <Screen title="Dump">
-      <Stub
-        phase={2}
-        lines={[
-          'You learned something out there. Type it in raw, however messy.',
-          'It gets parsed, tagged, and filed. Under 30 seconds.',
-        ]}
-      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={100}
+        style={styles.fill}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.scroll}>
+          {line ? <Text style={styles.line}>{line}</Text> : null}
+
+          {phase === 'compose' ? (
+            <>
+              <TextInput
+                style={styles.big}
+                multiline
+                placeholder="learned 시간 means time, and 준비 = preparation"
+                placeholderTextColor={colors.slate}
+                value={text}
+                onChangeText={(v) => {
+                  setText(v);
+                  if (line) setLine(null);
+                }}
+              />
+              <View style={styles.metaRow}>
+                <TextInput
+                  style={[styles.input, styles.minutes]}
+                  placeholder="min"
+                  placeholderTextColor={colors.slate}
+                  keyboardType="number-pad"
+                  value={minutes}
+                  onChangeText={setMinutes}
+                />
+                <TextInput
+                  style={[styles.input, styles.note]}
+                  placeholder="one line about today"
+                  placeholderTextColor={colors.slate}
+                  value={note}
+                  onChangeText={setNote}
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.action,
+                  text.trim().length === 0 && styles.actionDisabled,
+                  pressed && styles.pressed,
+                ]}
+                disabled={busy || text.trim().length === 0}
+                onPress={parse}>
+                <Text style={styles.actionText}>{busy ? '…' : 'Parse'}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              {drafts.map((draft, i) => (
+                <View key={i} style={styles.card}>
+                  <View style={styles.chipRow}>
+                    {DEFAULT_LANGUAGES.map((lang) => {
+                      const active = draft.languageCode === lang.code;
+                      return (
+                        <Pressable
+                          key={lang.code}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => patch(i, { languageCode: lang.code })}>
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {lang.glyph}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                    <View style={styles.spacer} />
+                    <Pressable
+                      onPress={() => setDrafts((prev) => prev.filter((_, j) => j !== i))}>
+                      <Text style={styles.remove}>remove</Text>
+                    </Pressable>
+                  </View>
+                  <Field label="term" value={draft.term} onChange={(v) => patch(i, { term: v })} />
+                  <Field
+                    label="reading"
+                    value={draft.reading}
+                    onChange={(v) => patch(i, { reading: v })}
+                  />
+                  <Field
+                    label="meaning"
+                    value={draft.meaning}
+                    onChange={(v) => patch(i, { meaning: v })}
+                  />
+                  <Field
+                    label="example"
+                    value={draft.example}
+                    onChange={(v) => patch(i, { example: v })}
+                  />
+                  {['ja', 'ko', 'zh'].includes(draft.languageCode) ? (
+                    <Field
+                      label="sino root"
+                      value={draft.sinoRoot}
+                      onChange={(v) => patch(i, { sinoRoot: v })}
+                    />
+                  ) : null}
+                  <View style={styles.chipRow}>
+                    {CONTEXTS.map((ctx) => {
+                      const active = draft.contextTag === ctx;
+                      return (
+                        <Pressable
+                          key={ctx}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => patch(i, { contextTag: active ? '' : ctx })}>
+                          <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                            {ctx}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+
+              <Pressable onPress={() => setDrafts((prev) => [...prev, { ...EMPTY_DRAFT }])}>
+                <Text style={styles.add}>+ add item</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+                disabled={busy}
+                onPress={save}>
+                <Text style={styles.actionText}>
+                  {busy
+                    ? '…'
+                    : `File ${drafts.filter((d) => d.term.trim()).length} ${
+                        drafts.filter((d) => d.term.trim()).length === 1 ? 'item' : 'items'
+                      }`}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => setPhase('compose')}>
+                <Text style={styles.back}>Back to the text</Text>
+              </Pressable>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <View style={styles.fieldRow}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        style={styles.fieldInput}
+        value={value}
+        onChangeText={onChange}
+        placeholderTextColor={colors.slate}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  scroll: { paddingBottom: space.xl },
+  line: {
+    color: colors.slate,
+    fontSize: type.small,
+    marginBottom: space.md,
+  },
+  big: {
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 8,
+    color: colors.paper,
+    fontSize: type.body,
+    lineHeight: type.body * 1.5,
+    padding: space.md,
+    minHeight: 140,
+    textAlignVertical: 'top',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: space.sm,
+    marginTop: space.md,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 6,
+    color: colors.paper,
+    fontSize: type.small,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+  minutes: { width: 72 },
+  note: { flex: 1 },
+  action: {
+    backgroundColor: colors.paper,
+    borderRadius: 6,
+    paddingVertical: space.md - 2,
+    alignItems: 'center',
+    marginTop: space.md,
+  },
+  actionDisabled: { opacity: 0.4 },
+  pressed: { opacity: 0.85 },
+  actionText: {
+    color: colors.ink,
+    fontSize: type.body,
+    fontWeight: '600',
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 8,
+    padding: space.md,
+    marginBottom: space.md,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: space.sm,
+    marginBottom: space.sm,
+  },
+  spacer: { flex: 1 },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 999,
+    paddingHorizontal: space.sm + 2,
+    paddingVertical: 2,
+  },
+  chipActive: {
+    backgroundColor: colors.paper,
+    borderColor: colors.paper,
+  },
+  chipText: {
+    color: colors.slate,
+    fontSize: type.small,
+  },
+  chipTextActive: {
+    color: colors.ink,
+    fontWeight: '600',
+  },
+  remove: {
+    color: colors.slate,
+    fontSize: type.micro,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: space.xs + 2,
+  },
+  fieldLabel: {
+    color: colors.slate,
+    fontSize: type.micro,
+    width: 72,
+  },
+  fieldInput: {
+    flex: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.rule,
+    color: colors.paper,
+    fontSize: type.body,
+    paddingVertical: 4,
+  },
+  add: {
+    color: colors.slate,
+    fontSize: type.small,
+    marginBottom: space.sm,
+  },
+  back: {
+    color: colors.slate,
+    fontSize: type.small,
+    textAlign: 'center',
+    marginTop: space.md,
+  },
+});

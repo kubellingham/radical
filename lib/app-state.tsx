@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
+import { flushOutbox, pullSessions } from './repo';
 import { hasPendingPush, loadSetup, persistSetup, pullSetup, retryPendingPush } from './setup';
 import { supabase, supabaseConfigured } from './supabase';
 import type { SetupState } from './types';
@@ -102,6 +103,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [ready, session, completed, pendingSync]);
+
+  // Drain anything the Dump/Record screens queued while offline, and adopt
+  // the session log from other devices. Quiet on failure; retried next boot.
+  useEffect(() => {
+    if (!ready || !session || !completed) return;
+    flushOutbox().catch(() => {});
+    pullSessions().catch(() => {});
+  }, [ready, session, completed]);
 
   const completeSetup = useCallback((state: SetupState, synced: boolean) => {
     setSetup(state);
