@@ -14,8 +14,8 @@ Expo (iOS + web) · Supabase · Anthropic API.
 
 ## First run
 
-1. **Supabase.** Create a project, then apply `supabase/migrations/20260729000000_init.sql` (SQL editor, `supabase db push`, or the Supabase MCP). Enable email auth (it's on by default).
-2. **Env.** Copy `.env.example` to `.env` and fill in the project URL and anon key. Without them the app runs local-only and starts syncing once they exist.
+1. **Supabase.** Live project: `mission-control` (`vjedphmlpmricpvrnzsw`, ap-south-1), schema applied from `supabase/migrations/20260729000000_init.sql`. For a fresh project, apply that file (SQL editor, `supabase db push`, or the Supabase MCP).
+2. **Env.** Copy `.env.example` to `.env` and fill in the project URL and publishable key (dashboard → Settings → API keys). Same two vars go in Vercel for the web deploy. Without them the app runs local-only and starts syncing once they exist.
 3. **Run.**
 
    ```bash
