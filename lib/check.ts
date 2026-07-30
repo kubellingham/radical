@@ -6,7 +6,7 @@
 import { localStore } from './local-store';
 import { localDay, newId } from './repo';
 import { grade } from './scheduler';
-import { dueSets, loadSets, loadSetStates, saveSetState } from './sets';
+import { dueSets, loadSets, loadSetStates, pushSetStates, saveSetState } from './sets';
 import { supabase } from './supabase';
 import type {
   CheckAsk,
@@ -175,6 +175,8 @@ export async function applyVerdicts(verdicts: CheckVerdict[]): Promise<void> {
     if (!state) continue;
     await saveSetState(grade(state, result));
   }
+  // Once the day's grading has landed, mirror it to the account.
+  pushSetStates();
 }
 
 /** Store the day's conversation, locally first and then in the account. */

@@ -16,7 +16,7 @@ import { SetCard } from '@/components/set-card';
 import { colors, space, type } from '@/constants/theme';
 import { logSession } from '@/lib/repo';
 import { grade } from '@/lib/scheduler';
-import { dueSets, loadSetStates, refillIfLow, saveSetState } from '@/lib/sets';
+import { dueSets, loadSetStates, pushSetStates, refillIfLow, saveSetState } from '@/lib/sets';
 import type { ContextTag, LexemeSet } from '@/lib/types';
 
 const CONTEXTS: (ContextTag | 'any')[] = [
@@ -79,6 +79,8 @@ export default function Feed() {
     if (!started || reviewed.current === 0) return;
     const minutes = Math.max(1, Math.round((Date.now() - started) / 60000));
     await logSession({ kind: 'feed', minutes, note: '', languageCode: null });
+    // Once per run, not once per swipe.
+    pushSetStates();
   }, []);
 
   const commit = useCallback(async (set: LexemeSet, got: boolean) => {

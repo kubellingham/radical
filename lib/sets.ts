@@ -322,7 +322,43 @@ export async function pushSets(sets: LexemeSet[]): Promise<void> {
   }
 }
 
-/** Adopt the bank already in the account (fresh device). */
+/**
+ * Mirror scheduling state too. Keyed by kind + gloss rather than by set id,
+ * because each device mints its own id and the bank upserts on the natural
+ * key — state filed under a second device's id would point at nothing.
+ *
+ * Without this the bank survives a device change but everything in it looks
+ * unseen again, which quietly throws away the only record of what you have
+ * actually worked. Quiet on failure; retried on the next save.
+ */
+export async function pushSetStates(): Promise<void> {
+  if (!supabase) return;
+  try {
+    const [sets, states] = await Promise.all([loadSets(), loadSetStates()]);
+    const byId = new Map(sets.map((s) => [s.id, s]));
+    const rows = [];
+    for (const state of states) {
+      const set = byId.get(state.setId);
+      // Untouched state carries no information worth a round trip.
+      if (!set || state.timesSeen === 0) continue;
+      rows.push({
+        kind: set.kind,
+        gloss: set.gloss,
+        strength: state.strength,
+        last_seen: state.lastSeen,
+        next_due: state.nextDue,
+        times_seen: state.timesSeen,
+        times_missed: state.timesMissed,
+      });
+    }
+    if (rows.length === 0) return;
+    await supabase.from('lexeme_set_state').upsert(rows, { onConflict: 'user_id,kind,gloss' });
+  } catch {
+    // State is local-first; syncing is a convenience.
+  }
+}
+
+/** Adopt the bank already in the account (fresh device), state included. */
 export async function pullSets(): Promise<number> {
   if (!supabase) return 0;
   try {
@@ -331,7 +367,7 @@ export async function pullSets(): Promise<number> {
       .select('id, gloss, kind, renderings, sino_root, context_tag, origin, created_at')
       .limit(2000);
     if (error || !data) return 0;
-    return await addSets(
+    const added = await addSets(
       data.map((r) => ({
         id: r.id,
         gloss: r.gloss,
@@ -343,6 +379,49 @@ export async function pullSets(): Promise<number> {
         createdAt: r.created_at,
       }))
     );
+    await pullSetStates();
+    return added;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Bring remote scheduling state onto this device. The more-worked side wins
+ * per set: a set seen ten times elsewhere and never here is genuinely ten
+ * times seen, and taking the maximum means two devices converge instead of
+ * sawing each other's progress off.
+ */
+export async function pullSetStates(): Promise<number> {
+  if (!supabase) return 0;
+  try {
+    const { data, error } = await supabase
+      .from('lexeme_set_state')
+      .select('kind, gloss, strength, last_seen, next_due, times_seen, times_missed')
+      .limit(4000);
+    if (error || !data || data.length === 0) return 0;
+
+    const remote = new Map(data.map((r) => [`${r.kind}:${r.gloss.trim().toLowerCase()}`, r]));
+    const [sets, states] = await Promise.all([loadSets(), loadSetStates()]);
+    const stateBySet = new Map(states.map((s) => [s.setId, s]));
+    let adopted = 0;
+
+    for (const set of sets) {
+      const r = remote.get(key(set));
+      if (!r) continue;
+      const local = stateBySet.get(set.id);
+      if (local && local.timesSeen >= r.times_seen) continue;
+      await saveSetState({
+        setId: set.id,
+        strength: r.strength,
+        lastSeen: r.last_seen,
+        nextDue: r.next_due ?? localDay(),
+        timesSeen: r.times_seen,
+        timesMissed: r.times_missed,
+      });
+      adopted += 1;
+    }
+    return adopted;
   } catch {
     return 0;
   }
