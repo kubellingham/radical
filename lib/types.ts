@@ -139,6 +139,18 @@ export interface CheckRecord {
   createdAt: string;
 }
 
+/**
+ * One day's line. The day is the identity — one line per day, rewritable
+ * until the day is over, and never more than one.
+ */
+export interface DailyLine {
+  /** The user's local day, YYYY-MM-DD. Also the local-store key. */
+  date: string;
+  languageCode: LanguageCode;
+  text: string;
+  createdAt: string;
+}
+
 export type SessionKind = 'dump' | 'feed' | 'check' | 'external';
 
 export interface SessionEntry {

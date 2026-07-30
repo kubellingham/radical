@@ -8,6 +8,8 @@ import { colors, space, type } from '@/constants/theme';
 import { supabaseConfigured, useApp } from '@/lib/app-state';
 import { checkedToday } from '@/lib/check';
 import { type Drift, driftLine, drifting } from '@/lib/drift';
+import { lineFor } from '@/lib/line';
+import { localDay } from '@/lib/repo';
 import { DEFAULT_LANGUAGES } from '@/lib/languages';
 import { dueSets, refillIfLow, sentenceOfTheDay } from '@/lib/sets';
 import type { LexemeSet } from '@/lib/types';
@@ -22,6 +24,7 @@ export default function Today() {
   const [loaded, setLoaded] = useState(false);
   const [drift, setDrift] = useState<Drift | null>(null);
   const [checked, setChecked] = useState(true);
+  const [written, setWritten] = useState(true);
 
   const languages = setup.languages;
   const build = useCallback(() => {
@@ -32,11 +35,14 @@ export default function Today() {
       setWaiting(words.length);
       setLoaded(true);
     });
-    Promise.all([drifting(languages), checkedToday()]).then(([d, done]) => {
-      if (cancelled) return;
-      setDrift(d);
-      setChecked(done);
-    });
+    Promise.all([drifting(languages), checkedToday(), lineFor(localDay())]).then(
+      ([d, done, line]) => {
+        if (cancelled) return;
+        setDrift(d);
+        setChecked(done);
+        setWritten(line !== null);
+      }
+    );
     refillIfLow('word');
     refillIfLow('sentence');
     return () => {
@@ -108,6 +114,12 @@ export default function Today() {
         {!checked ? (
           <Link href="/check" style={styles.check}>
             Two minutes, not done today.
+          </Link>
+        ) : null}
+
+        {!written ? (
+          <Link href="/line" style={styles.check}>
+            No line yet today.
           </Link>
         ) : null}
 

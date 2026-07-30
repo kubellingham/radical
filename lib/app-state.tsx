@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { pullChecks } from './check';
+import { pullLines } from './line';
 import { syncPacks } from './packs';
 import { flushOutbox, pullSessions } from './repo';
 import { backfillCaptured, backfillPronunciations, pullSets, refillIfLow } from './sets';
@@ -145,6 +146,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Drift is computed from check history, so a fresh device has to adopt
     // it before Today can say anything true about which language is dark.
     pullChecks().catch(() => {});
+    // The lines are the one thing here that could not be regenerated, so a
+    // fresh device adopts them before it can be asked to write another.
+    pullLines().catch(() => {});
     syncPacks(languageKey ? (languageKey.split(',') as LanguageCode[]) : []).catch(() => {});
     // Adopt the account's bank, bring anything captured before sets existed
     // into it, then top up if it's still thin.
