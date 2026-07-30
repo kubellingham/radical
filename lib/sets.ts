@@ -12,8 +12,12 @@ const STATE_PREFIX = 'set_state.';
 
 /** Below this many unseen sets, top the bank up. */
 const LOW_WATER = 12;
-/** How many to ask for each time. */
-const BATCH = 20;
+/**
+ * How many to ask for each time. Kept modest because generating all five
+ * languages for one entry is real work — a batch takes tens of seconds, and
+ * a smaller batch that lands beats a bigger one that times out.
+ */
+const BATCH = 16;
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? '';
 
@@ -113,7 +117,7 @@ export async function generateBatch(
     .map((s) => s.gloss);
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60000);
+  const timer = setTimeout(() => controller.abort(), 120000);
   try {
     const res = await fetch(`${API_BASE}/api/sets`, {
       method: 'POST',

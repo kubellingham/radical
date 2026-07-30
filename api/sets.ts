@@ -47,10 +47,12 @@ Every entry is ONE meaning rendered in ALL FIVE languages. Never omit a language
 - renderings: exactly five, one per language_code (ja, ko, zh, es, ru).
   - term: the native script, always. Japanese in kanji/kana, Korean in Hangul, Chinese in simplified Hanzi, Spanish in Latin script, Russian in Cyrillic. Never romanization in this field.
   - reading: Japanese "kana · romaji", Korean Revised Romanization, Chinese pinyin with tone marks, Russian romanization with the stressed vowel marked. Empty string for Spanish.
-- sino_root: when the Japanese, Korean and Chinese words all descend from the same Classical Chinese root, give that root in Chinese characters (e.g. 時間). Otherwise an empty string.
+- sino_root: only when all three of the Japanese, Korean and Chinese words are BOTH the everyday way to say it AND descend from the same Classical Chinese root — then give that root in Chinese characters (e.g. 時間). Otherwise an empty string.
 - context_tag: one of café/class/transit/gym/home/street when the entry clearly belongs somewhere; otherwise an empty string.
 
-Choose words and phrases a real adult actually meets, in rough frequency order. Natural, current usage — not textbook curiosities. Each entry must be the most idiomatic way to say that thing in each language, not a word-for-word calque.
+Choose words and phrases a real adult actually meets, in rough frequency order. Natural, current usage — not textbook curiosities.
+
+The single most important rule: give the word a native speaker would actually use, never the one that merely looks related across languages. If the shared-root word is not what people say, use the everyday word and leave sino_root empty. For example the everyday Chinese for "family" is 家人, not the cognate 家族; the everyday Chinese for "hospital" is 医院, not the Japanese 病院. Getting this wrong teaches something false, which is worse than teaching nothing.
 Reply with JSON only — no prose, no code fences.`;
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://vjedphmlpmricpvrnzsw.supabase.co';
