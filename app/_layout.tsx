@@ -6,10 +6,6 @@ import 'react-native-reanimated';
 import { colors } from '@/constants/theme';
 import { AppProvider } from '@/lib/app-state';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 const theme = {
   ...DarkTheme,
   colors: {
@@ -33,8 +29,9 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: colors.ink },
           }}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="setup" />
-          <Stack.Screen name="sign-in" />
+          {/* Gate screens: no swipe-back past sign-in or setup. */}
+          <Stack.Screen name="setup" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="sign-in" options={{ gestureEnabled: false }} />
         </Stack>
         <StatusBar style="light" />
       </ThemeProvider>

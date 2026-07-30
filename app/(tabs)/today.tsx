@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
 import { colors, space, type } from '@/constants/theme';
-import { useApp } from '@/lib/app-state';
+import { supabaseConfigured, useApp } from '@/lib/app-state';
 
 function statusLine(scriptLearned: boolean, status: string, slot: string): string {
   if (!scriptLearned) return 'script mode — learn the script first';
@@ -11,7 +11,7 @@ function statusLine(scriptLearned: boolean, status: string, slot: string): strin
 }
 
 export default function Today() {
-  const { setup } = useApp();
+  const { setup, pendingSync } = useApp();
   const today = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'long',
@@ -22,6 +22,9 @@ export default function Today() {
     <Screen title="Today">
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.date}>{today}</Text>
+        {pendingSync && supabaseConfigured ? (
+          <Text style={styles.date}>Setup saved on this device. Syncs when signed in.</Text>
+        ) : null}
 
         {setup.languages.map((lang, i) => (
           <View key={lang.code} style={[styles.row, i > 0 && styles.rowRule]}>

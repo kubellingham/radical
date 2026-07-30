@@ -1,20 +1,27 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { colors, space, type } from '@/constants/theme';
+
+// Tab screens keep the default edges — the tab bar owns the bottom inset.
+// Full-screen routes (setup, sign-in) pass 'bottom' too so content clears
+// the home indicator.
+const DEFAULT_EDGES: Edge[] = ['top', 'left', 'right'];
 
 export function Screen({
   title,
   children,
   style,
+  edges = DEFAULT_EDGES,
 }: {
   title?: string;
   children: React.ReactNode;
   style?: ViewStyle;
+  edges?: Edge[];
 }) {
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={edges}>
       <View style={[styles.body, style]}>
         {title ? <Text style={styles.title}>{title}</Text> : null}
         {children}

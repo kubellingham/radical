@@ -22,4 +22,4 @@ npm run export:web   # must succeed; deploy artifact is dist/
 
 ## Schema
 
-`supabase/migrations/` is the source of truth (languages, items, item_state, packs, pack_downloads, sessions, checks, mirrors, rhythm — all RLS'd to `user_id = auth.uid()`, `user_id` defaults to `auth.uid()` so clients never send it). Scheduling is simplified SM-2: strength 0–5, intervals [1,2,4,8,16,32] days.
+`supabase/migrations/` is the source of truth (languages, items, item_state, packs, pack_downloads, sessions, checks, mirrors, rhythm). User tables are RLS'd to `user_id = auth.uid()` with `user_id` defaulting to `auth.uid()` so clients never send it; `packs` is shared content — keyed by `language_code`, read-only to clients, written only by the build-time generator via service role. `date` columns carry the user's local day and are always sent by the client (no UTC `current_date` defaults). Scheduling is simplified SM-2: strength 0–5, intervals [1,2,4,8,16,32] days.

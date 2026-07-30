@@ -13,7 +13,7 @@ import type { LanguageConfig, RhythmSlot } from '@/lib/types';
 const SLOTS: RhythmSlot[] = ['morning', 'afternoon', 'evening', 'any'];
 
 export default function Setup() {
-  const { setup, setSetup } = useApp();
+  const { setup, completeSetup } = useApp();
   const [languages, setLanguages] = useState<LanguageConfig[]>(
     setup.languages.length > 0 ? setup.languages : DEFAULT_LANGUAGES
   );
@@ -36,13 +36,17 @@ export default function Setup() {
   async function begin() {
     if (busy) return;
     setBusy(true);
-    const { state } = await saveSetup(languages);
-    setSetup(state);
-    router.replace('/today');
+    try {
+      const { state, synced } = await saveSetup(languages);
+      completeSetup(state, synced);
+      router.replace('/today');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <Screen title="Five languages. Five years.">
+    <Screen title="Five languages. Five years." edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={styles.intro}>
           Mark each script you can already read. A language stays in script mode — cards and packs

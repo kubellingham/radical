@@ -13,6 +13,10 @@ function db(): Promise<SQLite.SQLiteDatabase> {
       );
       return database;
     })();
+    // A transient open failure must not poison every later call.
+    dbPromise.catch(() => {
+      dbPromise = null;
+    });
   }
   return dbPromise;
 }

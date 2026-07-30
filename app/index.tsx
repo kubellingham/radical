@@ -6,10 +6,12 @@ import { colors } from '@/constants/theme';
 import { supabaseConfigured, useApp } from '@/lib/app-state';
 
 export default function Index() {
-  const { ready, session, setup } = useApp();
+  const { ready, resolving, session, setup } = useApp();
 
-  if (!ready) {
-    // One frame of ink while the local store loads.
+  if (!ready || resolving) {
+    // Ink while the local store loads or a signed-in fresh install checks
+    // Supabase for existing setup. Showing the form early would invite a
+    // second device to overwrite the first one's config.
     return <View style={{ flex: 1, backgroundColor: colors.ink }} />;
   }
   if (supabaseConfigured && !session) {

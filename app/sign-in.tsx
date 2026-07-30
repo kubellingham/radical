@@ -4,16 +4,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen } from '@/components/screen';
 import { colors, space, type } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
 export default function SignIn() {
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'sign-in' | 'create'>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,11 +46,19 @@ export default function SignIn() {
   }
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        // The KAV sits below the top safe-area inset + screen padding; RN
+        // measures the keyboard in window coordinates, so compensate or the
+        // bottom of the form hides behind the keyboard on iOS.
+        keyboardVerticalOffset={insets.top + space.lg}
         style={styles.fill}>
-        <Text style={styles.mark}>語</Text>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <Text style={styles.mark}>語</Text>
         <Text style={styles.title}>Mission Control</Text>
         <Text style={styles.sub}>One account. Phone and web, same log.</Text>
 
@@ -83,11 +94,12 @@ export default function SignIn() {
           </Text>
         </Pressable>
 
-        <Pressable onPress={() => setMode(mode === 'sign-in' ? 'create' : 'sign-in')}>
-          <Text style={styles.switch}>
-            {mode === 'sign-in' ? 'First run? Create the account.' : 'Have the account? Sign in.'}
-          </Text>
-        </Pressable>
+          <Pressable onPress={() => setMode(mode === 'sign-in' ? 'create' : 'sign-in')}>
+            <Text style={styles.switch}>
+              {mode === 'sign-in' ? 'First run? Create the account.' : 'Have the account? Sign in.'}
+            </Text>
+          </Pressable>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -96,6 +108,9 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
     justifyContent: 'center',
   },
   mark: {
