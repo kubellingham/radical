@@ -196,7 +196,11 @@ ${asked}
 Conversation so far:
 ${said}
 
-This is turn ${turn} of ${total}.${last ? ' This is the FINAL turn — grade, close, and ask nothing.' : ''}`;
+This is turn ${turn} of ${total}.${
+    last
+      ? ' This is the FINAL turn — grade, close, and ask nothing.'
+      : ' There are turns left, so keep going: grade, then ask the next thing. Do not wrap up early.'
+  }`;
 
   try {
     const text = openRouterKey
@@ -233,7 +237,12 @@ This is turn ${turn} of ${total}.${last ? ' This is the FINAL turn — grade, cl
       })
       .slice(0, 4);
 
-    const done = parsed.done === true || last || !nextAsk;
+    // The model's own done flag is deliberately ignored: it likes to wrap up
+    // early, and a check that stops after four questions covers four
+    // languages instead of six, which is exactly the coverage drift is built
+    // on. It ends when the turns run out, or when there is nothing left to
+    // ask — and a model that means to stop stops writing questions anyway.
+    const done = last || !nextAsk;
     // One visible turn: what just happened, then what's being asked. The
     // question is dropped when the ask didn't survive, so the two can never
     // disagree on screen.
